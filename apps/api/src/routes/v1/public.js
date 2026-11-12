@@ -6,7 +6,6 @@ import {
   apisHandler,
   costsHandler,
   deploymentsHandler,
-  dockerHandler,
   domainsHandler,
   incidentsHandler,
   logsHandler,
@@ -15,6 +14,7 @@ import {
   serversHandler,
 } from '../../controllers/publicController.js';
 import { awsResourceDetailHandler, awsResourcesHandler, awsResourceSummaryHandler } from '../../controllers/awsController.js';
+import { dockerContainerDetailHandler, dockerOverviewHandler } from '../../controllers/dockerController.js';
 
 const publicLimiter = rateLimit({
   windowMs: 60 * 1000,
@@ -37,7 +37,8 @@ router.get('/incidents', incidentsHandler);
 router.get('/logs', logsHandler);
 router.get('/deployments', deploymentsHandler);
 router.get('/apis', apisHandler);
-router.get('/docker', dockerHandler);
+router.get('/docker', dockerOverviewHandler);
+router.get('/docker/containers/:id', dockerContainerDetailHandler);
 router.get('/network', networkHandler);
 router.get('/costs', costsHandler);
 router.get('/domains', domainsHandler);

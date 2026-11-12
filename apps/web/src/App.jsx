@@ -9,6 +9,7 @@ import { AdminHomePage } from './pages/AdminHomePage';
 import { RequireAdmin } from './components/RequireAdmin';
 import { ServersPage } from './pages/ServersPage';
 import { DockerPage } from './pages/DockerPage';
+import { DockerContainerDetailPage } from './pages/DockerContainerDetailPage';
 import { AlertsPage } from './pages/AlertsPage';
 import { IncidentsPage } from './pages/IncidentsPage';
 import { LogsPage } from './pages/LogsPage';
@@ -40,6 +41,7 @@ export default function App() {
         <Route path="aws-resources" element={<AwsResourcesPage />} />
         <Route path="aws-resources/:id" element={<AwsResourceDetailPage />} />
         <Route path="docker" element={<DockerPage />} />
+        <Route path="docker/:id" element={<DockerContainerDetailPage />} />
         <Route path="alerts" element={<AlertsPage />} />
         <Route path="incidents" element={<IncidentsPage />} />
         <Route path="logs" element={<LogsPage />} />

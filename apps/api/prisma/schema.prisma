@@ -140,6 +140,14 @@ model Server {
   awsSyncedAt    DateTime?
   ipAddress       String?
   publicIpAddress String?
+  dockerEnabled   Boolean           @default(false)
+  dockerAvailable Boolean?
+  dockerEngineVersion String?
+  dockerApiVersion String?
+  dockerRunningContainers Int?
+  dockerStoppedContainers Int?
+  dockerTotalContainers Int?
+  dockerImageCount Int?
   status          ServerStatus      @default(UNKNOWN)
   isDemo          Boolean           @default(false)
   lastHeartbeatAt DateTime?
@@ -149,6 +157,7 @@ model Server {
   agent           Agent?
   metrics         MetricSample[]
   containers      DockerContainer[]
+  dockerHeartbeats DockerAgentHeartbeat[]
   alerts          Alert[]
   incidents       Incident[]
   logs            LogEntry[]
@@ -157,6 +166,7 @@ model Server {
 
   @@index([isDemo, status])
   @@index([lastHeartbeatAt])
+  @@index([dockerEnabled, lastHeartbeatAt])
 }
 
 model AwsResource {
@@ -249,6 +259,19 @@ model DockerContainer {
   memUsageMb    Float?
   restartCount  Int      @default(0)
   startedAt     DateTime?
+  createdAtDocker DateTime?
+  lastSeenAt    DateTime?
+  missingSince  DateTime?
+  memoryUsageBytes BigInt?
+  memoryLimitBytes BigInt?
+  networkRxBytes BigInt?
+  networkTxBytes BigInt?
+  blockReadBytes BigInt?
+  blockWriteBytes BigInt?
+  ports         Json?
+  networks      Json?
+  mounts        Json?
+  metrics       DockerContainerMetric[]
   raw           Json?
   syncedAt      DateTime @default(now())
   createdAt     DateTime @default(now())
@@ -256,6 +279,41 @@ model DockerContainer {
 
   @@unique([serverId, containerId])
   @@index([serverId, state])
+  @@index([serverId, missingSince, lastSeenAt])
+}
+
+model DockerContainerMetric {
+  id             String          @id @default(cuid())
+  containerDbId  String
+  container      DockerContainer @relation(fields: [containerDbId], references: [id], onDelete: Cascade)
+  cpuPercent     Float?
+  memoryUsageBytes BigInt?
+  memoryLimitBytes BigInt?
+  memoryPercent  Float?
+  networkRxBytes BigInt?
+  networkTxBytes BigInt?
+  blockReadBytes BigInt?
+  blockWriteBytes BigInt?
+  collectedAt    DateTime         @default(now())
+  createdAt      DateTime         @default(now())
+
+  @@index([containerDbId, collectedAt])
+  @@index([collectedAt])
+}
+
+model DockerAgentHeartbeat {
+  id             String   @id @default(cuid())
+  serverId       String
+  server         Server   @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  dockerAvailable Boolean
+  dockerError    String?
+  engineVersion  String?
+  apiVersion     String?
+  containerCount Int?
+  imageCount     Int?
+  receivedAt     DateTime @default(now())
+
+  @@index([serverId, receivedAt])
 }
 
 model AlertRule {
