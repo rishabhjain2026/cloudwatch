@@ -16,8 +16,8 @@ const items = [
   { key: 'warningServers', label: 'Warning', icon: AlertTriangle, tone: 'warning', format: (v) => v },
   { key: 'criticalServers', label: 'Critical', icon: Siren, tone: 'critical', format: (v) => v },
   { key: 'activeIncidents', label: 'Active Incidents', icon: AlertTriangle, tone: 'danger', format: (v) => v },
-  { key: 'avgCpu', label: 'Avg CPU', icon: Cpu, format: (v) => `${v}%` },
-  { key: 'avgMemory', label: 'Avg Memory', icon: MemoryStick, format: (v) => `${v}%` },
+  { key: 'avgCpu', label: 'Avg CPU', icon: Cpu, format: (v) => v == null ? '—' : `${v}%` },
+  { key: 'avgMemory', label: 'Avg Memory', icon: MemoryStick, format: (v) => v == null ? '—' : `${v}%` },
   { key: 'monitoredApps', label: 'Monitored Apps', icon: HardDrive, format: (v) => v },
 ];
 

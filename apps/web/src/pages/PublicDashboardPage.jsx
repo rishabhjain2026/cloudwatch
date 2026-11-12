@@ -75,7 +75,7 @@ export function PublicDashboardPage() {
   const topConsumers = useMemo(
     () =>
       [...servers]
-        .sort((a, b) => (b.cpu || 0) + (b.memory || 0) - ((a.cpu || 0) + (a.memory || 0)))
+        .sort((a, b) => ((b.cpu ?? -1) + (b.memory ?? -1)) - ((a.cpu ?? -1) + (a.memory ?? -1)))
         .slice(0, 4),
     [servers],
   );
@@ -113,7 +113,7 @@ export function PublicDashboardPage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <div className="mb-2 flex flex-wrap items-center gap-2">
-            <Badge tone="demo">Demo data</Badge>
+            {servers.some((server) => !server.isDemo) ? <Badge tone="success">AWS data connected</Badge> : <Badge tone="demo">Demo data</Badge>}
             <Badge tone="accent">Read-only public API</Badge>
             {error ? <Badge tone="warning">Stale / partial</Badge> : null}
           </div>
@@ -121,8 +121,7 @@ export function PublicDashboardPage() {
             Infrastructure overview
           </h1>
           <p className="mt-1 max-w-2xl text-sm text-text-muted">
-            Live response from <code className="font-mono text-xs">/api/v1/public/overview</code>. All
-            records are DEMO and sanitized — no host IPs or secrets.
+            Live response from <code className="font-mono text-xs">/api/v1/public/overview</code>. AWS inventory is sanitized; unavailable metrics remain blank.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -151,7 +150,7 @@ export function PublicDashboardPage() {
           <CardHeader>
             <div>
               <CardTitle>CPU usage over time</CardTitle>
-              <CardDescription>Fleet average · DEMO · {range}</CardDescription>
+              <CardDescription>Recorded fleet average · {range}</CardDescription>
             </div>
           </CardHeader>
           <CardContent>
@@ -162,7 +161,7 @@ export function PublicDashboardPage() {
           <CardHeader>
             <div>
               <CardTitle>Memory usage over time</CardTitle>
-              <CardDescription>Fleet average · DEMO · {range}</CardDescription>
+              <CardDescription>Linux agent metrics only · {range}</CardDescription>
             </div>
           </CardHeader>
           <CardContent>
@@ -173,7 +172,7 @@ export function PublicDashboardPage() {
           <CardHeader>
             <div>
               <CardTitle>Network traffic</CardTitle>
-              <CardDescription>Inbound throughput · DEMO</CardDescription>
+              <CardDescription>Network throughput from agent and CloudWatch samples</CardDescription>
             </div>
           </CardHeader>
           <CardContent>
@@ -184,7 +183,7 @@ export function PublicDashboardPage() {
           <CardHeader>
             <div>
               <CardTitle>Disk utilization</CardTitle>
-              <CardDescription>Average used capacity · DEMO</CardDescription>
+              <CardDescription>Linux agent metrics only</CardDescription>
             </div>
           </CardHeader>
           <CardContent>
@@ -234,9 +233,9 @@ export function PublicDashboardPage() {
           <CardHeader>
             <div>
               <CardTitle>Infrastructure health</CardTitle>
-              <CardDescription>Demo servers · sanitized public view</CardDescription>
+              <CardDescription>AWS inventory and demo servers · sanitized public view</CardDescription>
             </div>
-            <Badge tone="demo">DEMO</Badge>
+            <Badge tone={servers.some((server) => !server.isDemo) ? 'success' : 'demo'}>{servers.some((server) => !server.isDemo) ? 'AWS + DEMO' : 'DEMO'}</Badge>
           </CardHeader>
           <CardContent className="px-0 pb-2">
             <Table>
@@ -256,7 +255,7 @@ export function PublicDashboardPage() {
                         <div>
                           <p className="font-medium">{server.name}</p>
                           <p className="text-xs text-text-subtle">
-                            {server.hostname} · {server.region}
+                            {server.awsInstanceId || server.hostname} · {server.awsState || server.region}
                           </p>
                         </div>
                       </div>
@@ -349,7 +348,7 @@ export function PublicDashboardPage() {
           <CardHeader>
             <div>
               <CardTitle>Top resource consumers</CardTitle>
-              <CardDescription>CPU + memory · DEMO</CardDescription>
+              <CardDescription>Available CPU and memory readings</CardDescription>
             </div>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -358,23 +357,23 @@ export function PublicDashboardPage() {
                 <div className="mb-1 flex items-center justify-between text-sm">
                   <span className="text-text">{server.name}</span>
                   <span className="font-mono text-text-muted">
-                    {(server.cpu || 0) + (server.memory || 0)}
+                    {server.cpu == null && server.memory == null ? '—' : `${server.cpu ?? '—'} / ${server.memory ?? '—'}`}
                   </span>
                 </div>
                 <div className="h-1.5 overflow-hidden rounded-full bg-surface-raised">
-                  <div
-                    className={cn(
-                      'h-full rounded-full',
-                      server.status === 'critical'
-                        ? 'bg-critical'
-                        : server.status === 'warning'
-                          ? 'bg-warning'
-                          : 'bg-accent',
-                    )}
-                    style={{
-                      width: `${Math.min(100, ((server.cpu || 0) + (server.memory || 0)) / 2)}%`,
-                    }}
-                  />
+                  {server.cpu != null || server.memory != null ? (
+                    <div
+                      className={cn(
+                        'h-full rounded-full',
+                        server.status === 'critical'
+                          ? 'bg-critical'
+                          : server.status === 'warning'
+                            ? 'bg-warning'
+                            : 'bg-accent',
+                      )}
+                      style={{ width: `${Math.min(100, ((server.cpu ?? 0) + (server.memory ?? 0)) / (server.cpu != null && server.memory != null ? 2 : 1))}%` }}
+                    />
+                  ) : null}
                 </div>
               </div>
             ))}

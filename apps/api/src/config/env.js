@@ -6,6 +6,11 @@ import { z } from 'zod';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
+const optionalSetting = z.preprocess(
+  (value) => (typeof value === 'string' && !value.trim() ? undefined : value),
+  z.string().trim().min(1).optional(),
+);
+
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().default(4000),
@@ -33,6 +38,8 @@ const envSchema = z.object({
     .optional()
     .transform((v) => v !== 'false'),
   WEBHOOK_SECRET: z.string().optional(),
+  AWS_REGION: optionalSetting,
+  AWS_PROFILE: optionalSetting,
 });
 
 const parsed = envSchema.safeParse(process.env);

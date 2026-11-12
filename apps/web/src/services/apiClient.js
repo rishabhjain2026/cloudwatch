@@ -67,4 +67,6 @@ export const api = {
     }),
   logout: () => request('/api/v1/admin/auth/logout', { method: 'POST', body: '{}' }),
   me: () => request('/api/v1/admin/auth/me'),
+  awsStatus: () => request('/api/v1/admin/aws/status'),
+  awsSync: () => request('/api/v1/admin/aws/sync', { method: 'POST', body: '{}' }),
 };

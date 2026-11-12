@@ -9,8 +9,9 @@ function statusKey(status) {
 }
 
 function serverDataStatus(server) {
-  if (!server.lastHeartbeatAt) return 'unavailable';
-  const age = Date.now() - new Date(server.lastHeartbeatAt).getTime();
+  const lastSeenAt = server.provider === 'AWS' ? server.awsSyncedAt : server.lastHeartbeatAt;
+  if (!lastSeenAt) return 'unavailable';
+  const age = Date.now() - new Date(lastSeenAt).getTime();
   if (age > STALE_MS * 2) return 'stale';
   return 'live';
 }
@@ -26,15 +27,15 @@ async function latestMetricMap(serverIds, kind) {
 }
 
 /** Build the server filter based on DEMO_MODE */
-function serverFilter() {
-  if (env.DEMO_MODE) return { isDemo: true };
-  // In real mode: show real servers + demo servers (demo clearly labelled)
-  return {};
+async function serverFilter() {
+  if (!env.DEMO_MODE) return {};
+  const hasAwsServers = await prisma.server.count({ where: { isDemo: false, provider: 'AWS' } });
+  return hasAwsServers ? { isDemo: false, provider: 'AWS' } : { isDemo: true };
 }
 
 export async function getPublicOverview(range = '24h') {
   const servers = await prisma.server.findMany({
-    where: serverFilter(),
+    where: await serverFilter(),
     orderBy: { name: 'asc' },
   });
   const serverIds = servers.map((s) => s.id);
@@ -146,10 +147,10 @@ export async function getPublicOverview(range = '24h') {
   }));
 
   return {
-    isDemo: env.DEMO_MODE,
+    isDemo: servers.length === 0 || servers.every((server) => server.isDemo),
     range,
     summary: {
-      isDemo: env.DEMO_MODE,
+      isDemo: servers.length === 0 || servers.every((server) => server.isDemo),
       totalServers: enriched.length,
       realServers: enriched.filter((s) => !s.isDemo).length,
       healthyServers: healthy,
@@ -234,7 +235,10 @@ async function getMetricSeries(serverIds, range) {
     if (!buckets.has(bucket)) {
       buckets.set(bucket, { t: new Date(bucket).toISOString(), CPU: [], MEM: [], DISK: [], NET_IN: [], NET_OUT: [] });
     }
-    buckets.get(bucket)[sample.kind].push(sample.value);
+    const value = sample.meta?.source === 'cloudwatch' && sample.kind.startsWith('NET_')
+      ? sample.value / 300 / 1_000_000
+      : sample.value;
+    buckets.get(bucket)[sample.kind].push(value);
   }
 
   const avg = (arr) =>
@@ -295,7 +299,7 @@ function emptyMetrics() {
 
 export async function listPublicServers() {
   const servers = await prisma.server.findMany({
-    where: serverFilter(),
+    where: await serverFilter(),
     orderBy: [{ isDemo: 'asc' }, { name: 'asc' }],
   });
   const ids = servers.map((s) => s.id);

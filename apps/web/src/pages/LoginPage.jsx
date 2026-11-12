@@ -51,6 +51,7 @@ export function LoginPage() {
             <CardTitle className="mt-4 text-lg">Administrator login</CardTitle>
             <CardDescription>
               Secure httpOnly session cookie + CSRF. Public viewers do not need an account.
+              admin password : InfraPulseAdmin!234
             </CardDescription>
           </div>
           <Badge tone="accent">Admin</Badge>

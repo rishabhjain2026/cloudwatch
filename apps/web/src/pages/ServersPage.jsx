@@ -32,7 +32,7 @@ export function ServersPage() {
   const critical = servers.filter((s) => s.status === 'critical').length;
 
   return (
-    <PageShell title="Servers" badge="Demo data" loading={loading} error={error}>
+    <PageShell title="Servers" badge={servers.some((server) => !server.isDemo) ? 'AWS + demo data' : 'Demo data'} loading={loading} error={error}>
       <div className="grid gap-3 sm:grid-cols-3">
         <Card><CardContent className="pt-4"><p className="text-xs text-text-subtle">Healthy</p><p className="mt-1 font-display text-2xl font-semibold text-success">{healthy}</p></CardContent></Card>
         <Card><CardContent className="pt-4"><p className="text-xs text-text-subtle">Warning</p><p className="mt-1 font-display text-2xl font-semibold text-warning">{warning}</p></CardContent></Card>
@@ -41,7 +41,7 @@ export function ServersPage() {
 
       <Card>
         <CardHeader>
-          <div><CardTitle>Server inventory</CardTitle><CardDescription>All monitored servers · DEMO</CardDescription></div>
+            <div><CardTitle>Server inventory</CardTitle><CardDescription>EC2 inventory and monitored servers</CardDescription></div>
         </CardHeader>
         <CardContent className="px-0 pb-2">
           <Table>
@@ -57,7 +57,7 @@ export function ServersPage() {
                       <StatusDot status={s.status} />
                       <div>
                         <p className="font-medium text-text">{s.name}</p>
-                        <p className="text-xs text-text-subtle">{s.hostname} · {s.region}</p>
+                          <p className="text-xs text-text-subtle">{s.awsInstanceId || s.hostname} · {s.awsState || s.region}</p>
                       </div>
                     </div>
                   </TD>
@@ -67,7 +67,7 @@ export function ServersPage() {
                   <TD><MetricBar value={s.cpu} status={s.status} /></TD>
                   <TD><MetricBar value={s.memory} status={s.status} /></TD>
                   <TD><MetricBar value={s.disk} status={s.status} /></TD>
-                  <TD className="text-xs text-text-muted">{formatRelative(s.lastHeartbeatAt)}</TD>
+                  <TD className="text-xs text-text-muted">{formatRelative(s.awsSyncedAt || s.lastHeartbeatAt)}</TD>
                 </TR>
               ))}
             </TBody>

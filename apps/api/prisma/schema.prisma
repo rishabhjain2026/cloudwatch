@@ -132,6 +132,12 @@ model Server {
   environment     String?
   region          String?
   provider        String?
+  awsInstanceId   String?           @unique
+  awsState        String?
+  awsInstanceType String?
+  awsAvailabilityZone String?
+  awsLaunchTime  DateTime?
+  awsSyncedAt    DateTime?
   ipAddress       String?
   status          ServerStatus      @default(UNKNOWN)
   isDemo          Boolean           @default(false)

@@ -6,7 +6,7 @@ import { ok } from '../utils/response.js';
 
 /** Returns { isDemo: true } in demo mode, {} in real mode (shows everything). */
 function demoFilter() {
-  return env.DEMO_MODE ? { isDemo: true } : {};
+  return env.DEMO_MODE ? { OR: [{ isDemo: true }, { server: { isDemo: false, provider: 'AWS' } }] } : {};
 }
 
 export async function overviewHandler(req, res) {
@@ -146,7 +146,11 @@ export async function dockerHandler(_req, res) {
 }
 
 export async function networkHandler(_req, res) {
-  const servers = await prisma.server.findMany({ where: demoFilter() });
+  const servers = await prisma.server.findMany({
+    where: env.DEMO_MODE
+      ? { OR: [{ isDemo: true }, { isDemo: false, provider: 'AWS' }] }
+      : {},
+  });
   const ids = servers.map((s) => s.id);
   if (!ids.length) return ok(res, []);
 

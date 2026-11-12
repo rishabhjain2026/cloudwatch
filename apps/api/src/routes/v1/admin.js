@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { prisma } from '../../lib/prisma.js';
 import { ok, fail } from '../../utils/response.js';
 import { agentRegisterRouter } from './agent.js';
+import { awsErrorStatus, getAwsConnectionStatus, syncAwsInstances } from '../../services/awsService.js';
 
 const router = Router();
 
@@ -13,6 +14,22 @@ router.use(requireAuth, requireRole('ADMIN'));
 
 // ── Agent registration ────────────────────────────────────────────────────────
 router.use('/agents', agentRegisterRouter);
+
+router.get('/aws/status', async (_req, res) => {
+  return ok(res, await getAwsConnectionStatus());
+});
+
+router.post('/aws/sync', requireCsrf, async (_req, res) => {
+  try {
+    return ok(res, await syncAwsInstances());
+  } catch (error) {
+    const result = awsErrorStatus(error);
+    const statusCode = result.status === 'missing_permissions' ? 403
+      : result.status === 'invalid_credentials' ? 401
+        : result.status === 'not_configured' ? 503 : 502;
+    return fail(res, statusCode, result.status.toUpperCase(), result.message);
+  }
+});
 
 // ── List registered agents/servers ───────────────────────────────────────────
 router.get('/agents', async (_req, res) => {
