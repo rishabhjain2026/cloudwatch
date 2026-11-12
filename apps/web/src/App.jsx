@@ -13,6 +13,8 @@ import { AlertsPage } from './pages/AlertsPage';
 import { IncidentsPage } from './pages/IncidentsPage';
 import { LogsPage } from './pages/LogsPage';
 import { DeploymentsPage } from './pages/DeploymentsPage';
+import { AwsResourcesPage } from './pages/AwsResourcesPage';
+import { AwsResourceDetailPage } from './pages/AwsResourceDetailPage';
 
 export default function App() {
   return (
@@ -35,6 +37,8 @@ export default function App() {
       <Route path="/dashboard" element={<PublicShell />}>
         <Route index element={<PublicDashboardPage />} />
         <Route path="servers" element={<ServersPage />} />
+        <Route path="aws-resources" element={<AwsResourcesPage />} />
+        <Route path="aws-resources/:id" element={<AwsResourceDetailPage />} />
         <Route path="docker" element={<DockerPage />} />
         <Route path="alerts" element={<AlertsPage />} />
         <Route path="incidents" element={<IncidentsPage />} />

@@ -4,6 +4,7 @@ import {
   Bell,
   Box,
   Container,
+  Cloud,
   FileText,
   LayoutDashboard,
   Menu,
@@ -25,6 +26,7 @@ import { cn } from '../utils/cn';
 const nav = [
   { to: '/dashboard', label: 'Overview', icon: LayoutDashboard, end: true },
   { to: '/dashboard/servers', label: 'Servers', icon: Server },
+  { to: '/dashboard/aws-resources', label: 'AWS Resources', icon: Cloud },
   { to: '/dashboard/docker', label: 'Docker', icon: Container },
   { to: '/dashboard/alerts', label: 'Alerts', icon: AlertTriangle },
   { to: '/dashboard/incidents', label: 'Incidents', icon: Bell },
@@ -55,7 +57,7 @@ export function PublicShell() {
             <BrandMark />
           </div>
           <div className="px-3 py-3">
-            <Badge tone="demo">Public demo · read-only</Badge>
+            <Badge tone="demo">Public · read-only</Badge>
           </div>
           <nav className="flex-1 space-y-0.5 overflow-y-auto px-2 pb-4">
             {nav.map((item) => {
@@ -81,7 +83,7 @@ export function PublicShell() {
             })}
           </nav>
           <div className="border-t border-border p-3 text-xs text-text-subtle">
-            Simulated infrastructure only. No real host IPs or secrets.
+            Resource and metric availability is shown from the latest successful or partial sync.
           </div>
         </aside>
 
@@ -171,7 +173,7 @@ export function PublicShell() {
               })}
             </nav>
             <div className="border-t border-border p-3 text-xs text-text-subtle">
-              Simulated infrastructure only.
+              Read-only live and demo data, clearly labeled.
             </div>
           </div>
         </div>

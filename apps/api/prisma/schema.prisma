@@ -139,6 +139,7 @@ model Server {
   awsLaunchTime  DateTime?
   awsSyncedAt    DateTime?
   ipAddress       String?
+  publicIpAddress String?
   status          ServerStatus      @default(UNKNOWN)
   isDemo          Boolean           @default(false)
   lastHeartbeatAt DateTime?
@@ -156,6 +157,51 @@ model Server {
 
   @@index([isDemo, status])
   @@index([lastHeartbeatAt])
+}
+
+model AwsResource {
+  id               String   @id @default(cuid())
+  accountId        String
+  identity         String
+  arn              String?
+  service          String
+  resourceType     String
+  resourceId       String
+  name             String?
+  region           String?
+  status           String?
+  metadata         Json?
+  lastDiscoveredAt DateTime @default(now())
+  missingSince     DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([accountId, identity])
+  @@index([service, region])
+  @@index([resourceType, status])
+  @@index([lastDiscoveredAt])
+  @@index([missingSince])
+}
+
+model AwsSyncRun {
+  id                       String    @id @default(cuid())
+  status                   String
+  coverageStatus           String
+  startedAt                DateTime  @default(now())
+  completedAt              DateTime?
+  resourcesDiscovered      Int       @default(0)
+  resourcesCreated         Int       @default(0)
+  resourcesUpdated         Int       @default(0)
+  servicesQueried          Json      @default("[]")
+  serviceErrors            Json      @default("[]")
+  unsupportedResourceTypes Json      @default("[]")
+  unintegratedResourceTypes Json    @default("[]")
+  incompleteRegions        Json      @default("[]")
+  resourceExplorerStatus   Json?
+  error                    String?
+
+  @@index([startedAt])
+  @@index([status, startedAt])
 }
 
 model Agent {

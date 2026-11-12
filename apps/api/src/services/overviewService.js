@@ -12,7 +12,10 @@ function serverDataStatus(server) {
   const lastSeenAt = server.provider === 'AWS' ? server.awsSyncedAt : server.lastHeartbeatAt;
   if (!lastSeenAt) return 'unavailable';
   const age = Date.now() - new Date(lastSeenAt).getTime();
-  if (age > STALE_MS * 2) return 'stale';
+  const staleAfterMs = server.provider === 'AWS'
+    ? Math.max(STALE_MS * 2, env.AWS_SYNC_INTERVAL_MINUTES * 60_000 * 2)
+    : STALE_MS * 2;
+  if (age > staleAfterMs) return 'stale';
   return 'live';
 }
 

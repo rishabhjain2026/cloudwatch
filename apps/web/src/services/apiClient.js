@@ -58,6 +58,9 @@ export const api = {
   publicNetwork: () => request('/api/v1/public/network'),
   publicCosts: () => request('/api/v1/public/costs'),
   publicDomains: () => request('/api/v1/public/domains'),
+  publicAwsResources: (query = '') => request(`/api/v1/public/aws/resources${query ? `?${query}` : ''}`),
+  publicAwsResource: (id) => request(`/api/v1/public/aws/resources/${encodeURIComponent(id)}`),
+  publicAwsSummary: () => request('/api/v1/public/aws/resources/summary'),
 
   // Admin auth
   login: (email, password) =>
@@ -69,4 +72,5 @@ export const api = {
   me: () => request('/api/v1/admin/auth/me'),
   awsStatus: () => request('/api/v1/admin/aws/status'),
   awsSync: () => request('/api/v1/admin/aws/sync', { method: 'POST', body: '{}' }),
+  adminAwsResource: (id) => request(`/api/v1/admin/aws/resources/${encodeURIComponent(id)}`),
 };

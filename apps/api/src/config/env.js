@@ -40,6 +40,7 @@ const envSchema = z.object({
   WEBHOOK_SECRET: z.string().optional(),
   AWS_REGION: optionalSetting,
   AWS_PROFILE: optionalSetting,
+  AWS_SYNC_INTERVAL_MINUTES: z.coerce.number().int().min(5).default(60),
 });
 
 const parsed = envSchema.safeParse(process.env);

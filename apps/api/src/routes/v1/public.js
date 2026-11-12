@@ -14,6 +14,7 @@ import {
   overviewHandler,
   serversHandler,
 } from '../../controllers/publicController.js';
+import { awsResourceDetailHandler, awsResourcesHandler, awsResourceSummaryHandler } from '../../controllers/awsController.js';
 
 const publicLimiter = rateLimit({
   windowMs: 60 * 1000,
@@ -40,5 +41,8 @@ router.get('/docker', dockerHandler);
 router.get('/network', networkHandler);
 router.get('/costs', costsHandler);
 router.get('/domains', domainsHandler);
+router.get('/aws/resources/summary', awsResourceSummaryHandler);
+router.get('/aws/resources/:id', awsResourceDetailHandler);
+router.get('/aws/resources', awsResourcesHandler);
 
 export default router;

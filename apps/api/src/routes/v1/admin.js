@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { prisma } from '../../lib/prisma.js';
 import { ok, fail } from '../../utils/response.js';
 import { agentRegisterRouter } from './agent.js';
-import { awsErrorStatus, getAwsConnectionStatus, syncAwsInstances } from '../../services/awsService.js';
+import { awsErrorStatus, getAwsConnectionStatus, getLatestAwsSync, syncAwsResources } from '../../services/awsService.js';
 
 const router = Router();
 
@@ -16,12 +16,29 @@ router.use(requireAuth, requireRole('ADMIN'));
 router.use('/agents', agentRegisterRouter);
 
 router.get('/aws/status', async (_req, res) => {
-  return ok(res, await getAwsConnectionStatus());
+  const [connection, latestSync] = await Promise.all([getAwsConnectionStatus(), getLatestAwsSync()]);
+  return ok(res, { ...connection, latestSync });
+});
+
+router.get('/aws/runs', async (req, res) => {
+  const page = Math.max(1, Number(req.query.page) || 1);
+  const runs = await prisma.awsSyncRun.findMany({
+    orderBy: { startedAt: 'desc' },
+    skip: (page - 1) * 20,
+    take: 20,
+  });
+  return ok(res, runs, { page, pageSize: 20 });
+});
+
+router.get('/aws/resources/:id', async (req, res) => {
+  const resource = await prisma.awsResource.findUnique({ where: { id: req.params.id } });
+  if (!resource) return fail(res, 404, 'NOT_FOUND', 'AWS resource not found');
+  return ok(res, resource);
 });
 
 router.post('/aws/sync', requireCsrf, async (_req, res) => {
   try {
-    return ok(res, await syncAwsInstances());
+    return ok(res, await syncAwsResources('manual'));
   } catch (error) {
     const result = awsErrorStatus(error);
     const statusCode = result.status === 'missing_permissions' ? 403

@@ -28,13 +28,18 @@ export function AdminHomePage() {
     setSyncing(true);
     try {
       const result = await api.awsSync();
-      const { discovered, metricsStored, metricIssues = [] } = result.data;
+      const {
+        resourcesDiscovered = 0,
+        resourcesCreated = 0,
+        resourcesUpdated = 0,
+        serviceErrors = [],
+      } = result.data;
       setAws({
         status: result.data.status,
         region: result.data.region,
-        message: `Sync complete: ${discovered} instances discovered, ${metricsStored} metric samples stored.${metricIssues.length ? ` ${metricIssues.length} metric requests need attention.` : ''}`,
+        message: `Sync ${result.data.status}: ${resourcesDiscovered} resources discovered (${resourcesCreated} new, ${resourcesUpdated} updated).${serviceErrors.length ? ` ${serviceErrors.length} service errors need attention.` : ''}`,
       });
-      push('AWS sync completed.', 'success');
+      push(`AWS sync ${result.data.status}.`, result.data.status === 'success' ? 'success' : 'warning');
     } catch (error) {
       setAws({ status: error.code?.toLowerCase() || 'unavailable', message: error.message });
       push(error.message, 'error');

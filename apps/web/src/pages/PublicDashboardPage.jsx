@@ -71,6 +71,11 @@ export function PublicDashboardPage() {
   }, [range]);
 
   const servers = data?.servers ?? [];
+  const awsServers = servers.filter((server) => !server.isDemo);
+  const awsAvailability = awsServers.some((server) => server.dataStatus === 'live') ? { label: 'AWS live', tone: 'success' }
+    : awsServers.some((server) => server.dataStatus === 'stale') ? { label: 'AWS stale', tone: 'warning' }
+      : awsServers.length ? { label: 'AWS unavailable', tone: 'neutral' }
+        : { label: 'Demo data', tone: 'demo' };
   const metrics = data?.metrics ?? {};
   const topConsumers = useMemo(
     () =>
@@ -113,7 +118,7 @@ export function PublicDashboardPage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <div className="mb-2 flex flex-wrap items-center gap-2">
-            {servers.some((server) => !server.isDemo) ? <Badge tone="success">AWS data connected</Badge> : <Badge tone="demo">Demo data</Badge>}
+            <Badge tone={awsAvailability.tone}>{awsAvailability.label}</Badge>
             <Badge tone="accent">Read-only public API</Badge>
             {error ? <Badge tone="warning">Stale / partial</Badge> : null}
           </div>
