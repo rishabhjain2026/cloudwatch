@@ -1,0 +1,11 @@
+{
+  "name": "infrapulse-agent",
+  "version": "1.0.0",
+  "description": "InfraPulse monitoring agent — Linux and Windows",
+  "type": "module",
+  "scripts": {
+    "start": "node agent.js",
+    "register": "node register.js"
+  },
+  "engines": { "node": ">=18" }
+}

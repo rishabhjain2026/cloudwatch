@@ -1,0 +1,154 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Sora", "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  --color-canvas: var(--ip-canvas);
+  --color-surface: var(--ip-surface);
+  --color-surface-raised: var(--ip-surface-raised);
+  --color-surface-overlay: var(--ip-surface-overlay);
+  --color-border: var(--ip-border);
+  --color-border-strong: var(--ip-border-strong);
+  --color-text: var(--ip-text);
+  --color-text-muted: var(--ip-text-muted);
+  --color-text-subtle: var(--ip-text-subtle);
+  --color-accent: var(--ip-accent);
+  --color-accent-soft: var(--ip-accent-soft);
+  --color-accent-fg: var(--ip-accent-fg);
+  --color-success: var(--ip-success);
+  --color-warning: var(--ip-warning);
+  --color-danger: var(--ip-danger);
+  --color-info: var(--ip-info);
+  --color-critical: var(--ip-critical);
+  --color-ring: var(--ip-ring);
+
+  --shadow-panel: var(--ip-shadow-panel);
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+}
+
+:root {
+  color-scheme: light;
+  --ip-canvas: #f4f7fb;
+  --ip-surface: #ffffff;
+  --ip-surface-raised: #eef3f9;
+  --ip-surface-overlay: #ffffff;
+  --ip-border: #d7e0ea;
+  --ip-border-strong: #b7c5d4;
+  --ip-text: #0f172a;
+  --ip-text-muted: #475569;
+  --ip-text-subtle: #64748b;
+  --ip-accent: #0d9488;
+  --ip-accent-soft: rgba(13, 148, 136, 0.12);
+  --ip-accent-fg: #ffffff;
+  --ip-success: #059669;
+  --ip-warning: #d97706;
+  --ip-danger: #dc2626;
+  --ip-info: #0284c7;
+  --ip-critical: #e11d48;
+  --ip-ring: rgba(13, 148, 136, 0.45);
+  --ip-shadow-panel: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px rgba(15, 23, 42, 0.06);
+  --ip-grid-line: rgba(15, 23, 42, 0.06);
+  --ip-hero-glow: rgba(13, 148, 136, 0.18);
+}
+
+.dark {
+  color-scheme: dark;
+  --ip-canvas: #070b14;
+  --ip-surface: #0c1220;
+  --ip-surface-raised: #121a2b;
+  --ip-surface-overlay: #162033;
+  --ip-border: #1e2a3f;
+  --ip-border-strong: #2a3a55;
+  --ip-text: #e8eef8;
+  --ip-text-muted: #9aa8bc;
+  --ip-text-subtle: #6b7c93;
+  --ip-accent: #2dd4bf;
+  --ip-accent-soft: rgba(45, 212, 191, 0.12);
+  --ip-accent-fg: #042f2e;
+  --ip-success: #34d399;
+  --ip-warning: #fbbf24;
+  --ip-danger: #f87171;
+  --ip-info: #38bdf8;
+  --ip-critical: #fb7185;
+  --ip-ring: rgba(45, 212, 191, 0.4);
+  --ip-shadow-panel: 0 1px 0 rgba(255, 255, 255, 0.03), 0 12px 32px rgba(0, 0, 0, 0.35);
+  --ip-grid-line: rgba(148, 163, 184, 0.08);
+  --ip-hero-glow: rgba(45, 212, 191, 0.14);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: var(--font-sans);
+    background: var(--color-canvas);
+    color: var(--color-text);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  #root {
+    min-height: 100vh;
+  }
+
+  ::selection {
+    background: var(--color-accent-soft);
+    color: var(--color-text);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-ring);
+    outline-offset: 2px;
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: var(--font-display);
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .ip-grid-bg {
+    background-image:
+      linear-gradient(to right, var(--ip-grid-line) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--ip-grid-line) 1px, transparent 1px);
+    background-size: 48px 48px;
+  }
+
+  .ip-noise {
+    background-image: radial-gradient(circle at 20% 20%, var(--ip-hero-glow), transparent 42%),
+      radial-gradient(circle at 80% 0%, rgba(56, 189, 248, 0.08), transparent 35%);
+  }
+
+  .ip-scrollbar::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .ip-scrollbar::-webkit-scrollbar-thumb {
+    background: var(--color-border-strong);
+    border-radius: 999px;
+  }
+
+  .ip-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}

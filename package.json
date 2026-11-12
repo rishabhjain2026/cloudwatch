@@ -1,0 +1,26 @@
+{
+  "name": "infrapulse",
+  "version": "0.1.0",
+  "private": true,
+  "description": "InfraPulse — Unified Infrastructure Observability & Intelligent Incident Response",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w @infrapulse/web",
+    "dev:web": "npm run dev -w @infrapulse/web",
+    "dev:api": "npm run dev -w @infrapulse/api",
+    "build": "npm run build -w @infrapulse/web",
+    "build:web": "npm run build -w @infrapulse/web",
+    "preview:web": "npm run preview -w @infrapulse/web",
+    "db:up": "docker compose -f docker-compose.dev.yml up -d",
+    "db:down": "docker compose -f docker-compose.dev.yml down",
+    "db:migrate": "npm run db:migrate -w @infrapulse/api",
+    "db:seed": "npm run db:seed -w @infrapulse/api",
+    "db:generate": "npm run db:generate -w @infrapulse/api",
+    "lint": "npm run lint -w @infrapulse/web"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
