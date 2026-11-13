@@ -32,7 +32,8 @@ export async function alertsHandler(_req, res) {
 
 export async function incidentsHandler(_req, res) {
   const incidents = await prisma.incident.findMany({
-    where: demoFilter(),
+    // Real incidents are private unless an explicit publication workflow is added later.
+    where: { OR: [{ isDemo: true }, { isPublic: true }] },
     include: { server: true, events: { orderBy: { createdAt: 'asc' } } },
     orderBy: { detectedAt: 'desc' },
     take: 50,
@@ -41,10 +42,10 @@ export async function incidentsHandler(_req, res) {
     res,
     incidents.map((i) => ({
       ...publicIncident(i),
-      events: i.events.map((e) => ({
+      events: i.events.filter((e)=>['DETECTED','CREATED','ACKNOWLEDGED','INVESTIGATING','RESOLVED','CLOSED','REOPENED'].includes(e.type)).map((e) => ({
         id: e.id,
         type: e.type,
-        message: e.message,
+        message: ({DETECTED:'Incident detected.',CREATED:'Incident created.',ACKNOWLEDGED:'Incident acknowledged.',INVESTIGATING:'Investigation started.',RESOLVED:'Incident resolved.',CLOSED:'Incident closed.',REOPENED:'Incident reopened.'})[e.type],
         createdAt: e.createdAt,
       })),
     })),

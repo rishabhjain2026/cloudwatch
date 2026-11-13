@@ -12,6 +12,7 @@ import {
   Rocket,
   Search,
   Server,
+  ShieldAlert,
   Sun,
   X,
 } from 'lucide-react';
@@ -42,6 +43,7 @@ export function PublicShell() {
   const { push } = useToast();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const visibleNav = isAdmin ? [...nav, { to: '/admin/incidents', label: 'Incident management', icon: ShieldAlert }] : nav;
   const [notifications,setNotifications]=useState(null);
   const [notificationOpen,setNotificationOpen]=useState(false);
   useEffect(()=>{if(user)api.get('/api/v1/notifications').then(result=>setNotifications(result.data)).catch(()=>setNotifications(null));else setNotifications(null)},[user]);
@@ -51,7 +53,7 @@ export function PublicShell() {
     } catch {}
   };
 
-  const crumb = [...nav].reverse().find((item) =>
+  const crumb = [...visibleNav].reverse().find((item) =>
     item.end
       ? location.pathname === item.to
       : location.pathname.startsWith(item.to),
@@ -69,7 +71,7 @@ export function PublicShell() {
             <Badge tone="demo">Public · read-only</Badge>
           </div>
           <nav className="flex-1 space-y-0.5 overflow-y-auto px-2 pb-4">
-            {nav.map((item) => {
+            {visibleNav.map((item) => {
               const Icon = item.icon;
               return (
                 <NavLink
@@ -161,7 +163,7 @@ export function PublicShell() {
               </Button>
             </div>
             <nav className="flex-1 space-y-0.5 overflow-y-auto p-2">
-              {nav.map((item) => {
+              {visibleNav.map((item) => {
                 const Icon = item.icon;
                 return (
                   <NavLink

@@ -17,6 +17,7 @@ import { DeploymentsPage } from './pages/DeploymentsPage';
 import { AwsResourcesPage } from './pages/AwsResourcesPage';
 import { AwsResourceDetailPage } from './pages/AwsResourceDetailPage';
 import { AdminAlertManagementPage } from './pages/AdminAlertManagementPage';
+import { AdminIncidentManagementPage } from './pages/AdminIncidentManagementPage';
 
 export default function App() {
   return (
@@ -36,6 +37,7 @@ export default function App() {
         }
       />
       <Route path="/admin/alerts" element={<RequireAdmin><AdminAlertManagementPage /></RequireAdmin>} />
+      <Route path="/admin/incidents" element={<RequireAdmin><AdminIncidentManagementPage /></RequireAdmin>} />
 
       <Route path="/dashboard" element={<PublicShell />}>
         <Route index element={<PublicDashboardPage />} />
