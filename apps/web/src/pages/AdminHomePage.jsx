@@ -61,8 +61,7 @@ export function AdminHomePage() {
             <Badge tone="accent">Administrator</Badge>
             <CardTitle className="mt-3 text-xl">Welcome, {user?.name}</CardTitle>
             <CardDescription>
-              Auth is live. Full admin modules (servers, rules, remediation) land in Phases 5–10.
-              Your session uses an httpOnly cookie; mutating requests require CSRF.
+              Manage alert rules, team routing, notification delivery, and AWS discovery. Mutating requests require CSRF.
             </CardDescription>
           </div>
         </CardHeader>
@@ -95,6 +94,7 @@ export function AdminHomePage() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
+            <Button as={Link} to="/admin/alerts" variant="secondary">Alert management</Button>
             <Button as={Link} to="/dashboard" variant="secondary">
               View public demo
             </Button>

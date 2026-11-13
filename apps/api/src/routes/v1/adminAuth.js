@@ -21,6 +21,6 @@ const router = Router();
 
 router.post('/login', authLimiter, validate(loginSchema), loginHandler);
 router.post('/logout', optionalAuth, requireCsrf, logoutHandler);
-router.get('/me', requireAuth, requireRole('ADMIN'), meHandler);
+router.get('/me', requireAuth, meHandler);
 
 export default router;

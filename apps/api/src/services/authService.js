@@ -28,12 +28,6 @@ export async function login(email, password, res, meta = {}) {
     throw err;
   }
 
-  if (user.role.name !== 'ADMIN') {
-    const err = new Error('Administrator access required');
-    err.code = 'FORBIDDEN';
-    throw err;
-  }
-
   const token = signAccessToken({ sub: user.id, role: user.role.name });
   const csrf = createCsrfToken();
 

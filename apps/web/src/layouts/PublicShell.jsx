@@ -15,13 +15,14 @@ import {
   Sun,
   X,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { BrandMark } from '../components/BrandMark';
 import { Badge, Button, Input } from '../design-system';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useToast } from '../context/ToastContext';
 import { cn } from '../utils/cn';
+import { api } from '../services/apiClient';
 
 const nav = [
   { to: '/dashboard', label: 'Overview', icon: LayoutDashboard, end: true },
@@ -37,10 +38,18 @@ const nav = [
 
 export function PublicShell() {
   const { theme, toggleTheme } = useTheme();
-  const { isAdmin } = useAuth();
+  const { isAdmin, user } = useAuth();
   const { push } = useToast();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [notifications,setNotifications]=useState(null);
+  const [notificationOpen,setNotificationOpen]=useState(false);
+  useEffect(()=>{if(user)api.get('/api/v1/notifications').then(result=>setNotifications(result.data)).catch(()=>setNotifications(null));else setNotifications(null)},[user]);
+  const markRead=async(id)=>{
+    try { if(!id){await api.post('/api/v1/notifications/read-all',{});setNotifications(current=>current?{...current,unread:0,items:current.items.map(n=>({...n,readAt:new Date().toISOString()}))}:current)}
+      else {await api.patch(`/api/v1/notifications/${id}/read`,{});setNotifications(current=>current?{...current,unread:Math.max(0,current.unread-1),items:current.items.map(n=>n.id===id?{...n,readAt:new Date().toISOString()}:n)}:current)}
+    } catch {}
+  };
 
   const crumb = [...nav].reverse().find((item) =>
     item.end
@@ -123,8 +132,9 @@ export function PublicShell() {
             >
               {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </Button>
-            <Button as={NavLink} to={isAdmin ? '/admin' : '/login'} variant="secondary" size="sm">
-              {isAdmin ? 'Admin' : 'Admin login'}
+            {user&&<div className="relative"><Button variant="ghost" size="icon" aria-label="Notifications" onClick={()=>setNotificationOpen(v=>!v)}><Bell className="h-4 w-4"/>{notifications?.unread>0&&<span className="absolute right-0 top-0 h-2 w-2 rounded-full bg-danger"/>}</Button>{notificationOpen&&<div className="absolute right-0 z-50 mt-2 w-80 rounded-md border border-border bg-surface p-3 shadow-xl"><div className="flex justify-between"><p className="text-sm font-medium">Notifications</p>{notifications?.unread>0&&<button className="text-xs text-accent" onClick={()=>markRead(null)}>Mark all read</button>}</div><div className="mt-2 max-h-80 space-y-1 overflow-y-auto">{notifications?.items?.slice(0,10).map(n=><button key={n.id} onClick={()=>markRead(n.id)} className={`block w-full rounded p-2 text-left ${n.readAt?'opacity-60':'bg-accent-soft'}`}><span className="block text-xs font-medium">{n.title}</span><span className="mt-1 block line-clamp-2 text-[11px] text-text-muted">{n.body}</span></button>)}{!notifications?.items?.length&&<p className="py-4 text-center text-xs text-text-muted">No notifications</p>}</div></div>}</div>}
+            <Button as={NavLink} to={user ? (isAdmin ? '/admin' : '/dashboard') : '/login'} variant="secondary" size="sm">
+              {user ? (isAdmin ? 'Admin' : user.name) : 'Sign in'}
             </Button>
           </header>
 

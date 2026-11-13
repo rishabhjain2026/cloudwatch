@@ -33,6 +33,7 @@
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",
+    "nodemailer": "^10.5.0",
     "zod": "^3.25.28"
   },
   "devDependencies": {

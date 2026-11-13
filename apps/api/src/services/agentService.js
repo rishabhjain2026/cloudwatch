@@ -1,6 +1,6 @@
 import { prisma } from '../lib/prisma.js';
 import { createAgentToken } from '../utils/crypto.js';
-import { evaluateAlerts } from './alertService.js';
+import { evaluateAlerts, evaluateSignal, evaluateDockerContainerRules } from './alertService.js';
 
 /**
  * Register a new server + agent. Returns the raw token (shown once only).
@@ -182,9 +182,11 @@ export async function syncDockerContainers(serverId, payload) {
     receivedAt: now,
   } });
 
+  await evaluateSignal({ key:`docker-engine-unavailable:${serverId}`, alertType:'DOCKER_ENGINE_UNAVAILABLE', category:'DOCKER', resourceType:'DOCKER_HOST', resourceId:serverId, resourceName:serverId, serverId, title:'Docker engine unavailable', description:payload.dockerError || 'Docker engine is unreachable from the InfraPulse agent.', triggered:!payload.available });
   if (!payload.available) return { available: false, upserted: 0, metricsStored: 0 };
 
   for (const c of payload.containers || []) {
+    const previous = await prisma.dockerContainer.findUnique({ where: { serverId_containerId: { serverId, containerId: c.containerId } }, select: { id: true, name: true, state: true } });
     const current = {
       name: c.name,
       image: c.image ?? null,
@@ -211,6 +213,14 @@ export async function syncDockerContainers(serverId, payload) {
     });
     counts.set(c.containerId, row.id);
     upserted++;
+    const stoppedKey=`docker-container-stopped:${row.id}`;
+    const stateStopped=['exited','dead','stopped'].includes(String(c.state).toLowerCase());
+    const wasRunning=previous&&['running','restarting'].includes(String(previous.state).toLowerCase());
+    const previousAlert=stateStopped?await prisma.alert.findUnique({where:{deduplicationKey:stoppedKey},select:{status:true}}):null;
+    const stopped=stateStopped&&(Boolean(wasRunning)||['OPEN','ACKNOWLEDGED'].includes(previousAlert?.status));
+    await evaluateSignal({ key:stoppedKey, alertType:'DOCKER_CONTAINER_STOPPED', category:'DOCKER', resourceType:'DOCKER_CONTAINER', resourceId:row.id, resourceName:c.name, serverId, title:`Docker container stopped: ${c.name}`, description:`Container state is ${c.state}.`, triggered:Boolean(stopped), severity:'HIGH' });
+    const unhealthy = String(c.health || '').toLowerCase() === 'unhealthy';
+    if (c.health != null) await evaluateSignal({ key:`docker-container-unhealthy:${row.id}`, alertType:'DOCKER_CONTAINER_UNHEALTHY', category:'DOCKER', resourceType:'DOCKER_CONTAINER', resourceId:row.id, resourceName:c.name, serverId, title:`Docker container unhealthy: ${c.name}`, description:`Container health check reports ${c.health}.`, triggered:unhealthy, severity:'HIGH' });
   }
 
   // A full successful inventory marks absent records stale without deleting or changing their last known state.
@@ -242,6 +252,7 @@ export async function syncDockerContainers(serverId, payload) {
     };
     if (Object.values(values).every((value) => value == null)) continue;
     await prisma.dockerContainerMetric.create({ data: { containerDbId, collectedAt: now, ...values } });
+    await evaluateDockerContainerRules(containerDbId);
     await prisma.dockerContainer.update({
       where: { id: containerDbId },
       data: {
