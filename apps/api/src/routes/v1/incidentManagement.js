@@ -8,11 +8,11 @@ import { prisma } from '../../lib/prisma.js';
 import {
   addIncidentComment, associateAlerts, createManualIncident, getIncident, incidentAnalytics,
   incidentOverview, incidentResourceCatalog, listAssignableUsers, listAutomationRules, listIncidents, saveAutomationRule,
-  savePostmortem, transitionIncident, updateIncident,
+  transitionIncident, updateIncident,
 } from '../../services/incidentService.js';
 import {
   askIncidentQuestion, createAiPostmortemDraft, getIncidentAnalysis, incidentChatHistory,
-  requestIncidentAnalysis, similarIncidents,
+  requestIncidentAnalysis, similarIncidents,savePostmortem,
 } from '../../services/incidentAiService.js';
 import { aiProviderStatus } from '../../services/aiProvider.js';
 
