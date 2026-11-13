@@ -3,11 +3,16 @@ import { evaluateHeartbeats } from './alertService.js';
 import { runDueApiChecks } from './apiCheckerService.js';
 import { syncAwsResources } from './awsService.js';
 import { processNotificationQueue } from './notificationService.js';
+import { processIncidentAnalysisQueue } from './incidentAiService.js';
+import { notifyUnacknowledgedIncidents } from './incidentService.js';
 
 let heartbeatTimer = null;
 let apiCheckTimer = null;
 let awsSyncTimer = null;
 let notificationTimer = null;
+let incidentAiTimer = null;
+let incidentAiRunning = false;
+let incidentReminderTimer = null;
 
 export function startScheduler() {
   // Heartbeat watchdog — runs every 30 seconds
@@ -37,6 +42,18 @@ export function startScheduler() {
     }, 15_000);
   }
 
+  incidentAiTimer = setInterval(async () => {
+    if (incidentAiRunning) return;
+    incidentAiRunning = true;
+    try { await processIncidentAnalysisQueue(); }
+    catch (err) { console.error('[scheduler] incident AI worker error:', err.message); }
+    finally { incidentAiRunning = false; }
+  }, 5_000);
+  incidentReminderTimer = setInterval(async () => {
+    try { await notifyUnacknowledgedIncidents(env.INCIDENT_UNACKNOWLEDGED_SEC); }
+    catch (err) { console.error('[scheduler] incident reminder error:', err.message); }
+  }, 60_000);
+
   if (env.AWS_REGION) {
     const intervalMs = env.AWS_SYNC_INTERVAL_MINUTES * 60_000;
     awsSyncTimer = setInterval(async () => {
@@ -57,4 +74,6 @@ export function stopScheduler() {
   if (apiCheckTimer) clearInterval(apiCheckTimer);
   if (awsSyncTimer) clearInterval(awsSyncTimer);
   if (notificationTimer) clearInterval(notificationTimer);
+  if (incidentAiTimer) clearInterval(incidentAiTimer);
+  if (incidentReminderTimer) clearInterval(incidentReminderTimer);
 }

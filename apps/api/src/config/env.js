@@ -41,6 +41,13 @@ const envSchema = z.object({
   AWS_REGION: optionalSetting,
   AWS_PROFILE: optionalSetting,
   AWS_SYNC_INTERVAL_MINUTES: z.coerce.number().int().min(5).default(60),
+  AI_PROVIDER: optionalSetting,
+  AI_API_KEY: optionalSetting,
+  AI_MODEL: optionalSetting,
+  AI_BASE_URL: optionalSetting,
+  AI_TIMEOUT_MS: z.coerce.number().int().min(5000).max(120000).default(30000),
+  AI_ANALYSIS_ENABLED: z.string().optional().transform((v) => v !== 'false'),
+  INCIDENT_UNACKNOWLEDGED_SEC: z.coerce.number().int().min(60).max(604800).default(900),
 });
 
 const parsed = envSchema.safeParse(process.env);

@@ -7,12 +7,14 @@ import { ok, fail } from '../../utils/response.js';
 import { agentRegisterRouter } from './agent.js';
 import { awsErrorStatus, getAwsConnectionStatus, getLatestAwsSync, syncAwsResources } from '../../services/awsService.js';
 import alertManagementRoutes from './alertManagement.js';
+import incidentManagementRoutes from './incidentManagement.js';
 
 const router = Router();
 
 // All admin routes require authentication
 router.use(requireAuth, requireRole('ADMIN'));
 router.use('/alert-center', alertManagementRoutes);
+router.use(incidentManagementRoutes);
 
 // ── Agent registration ────────────────────────────────────────────────────────
 router.use('/agents', agentRegisterRouter);
@@ -160,39 +162,4 @@ router.delete('/api-monitors/:id', requireCsrf, async (req, res) => {
 });
 
 // ── Incidents — acknowledge / update status ───────────────────────────────────
-router.post('/incidents/:id/acknowledge', requireCsrf, async (req, res) => {
-  const incident = await prisma.incident.findUnique({ where: { id: req.params.id } });
-  if (!incident) return fail(res, 404, 'NOT_FOUND', 'Incident not found');
-  const updated = await prisma.incident.update({
-    where: { id: req.params.id },
-    data: {
-      status: 'ACKNOWLEDGED',
-      assigneeId: req.user.id,
-      mttaMs: Date.now() - new Date(incident.detectedAt).getTime(),
-      events: {
-        create: [{ type: 'ACKNOWLEDGED', message: 'Acknowledged by admin', actorId: req.user.id }],
-      },
-    },
-  });
-  return ok(res, { id: updated.id, status: updated.status });
-});
-
-router.post('/incidents/:id/resolve', requireCsrf, async (req, res) => {
-  const incident = await prisma.incident.findUnique({ where: { id: req.params.id } });
-  if (!incident) return fail(res, 404, 'NOT_FOUND', 'Incident not found');
-  const now = new Date();
-  const updated = await prisma.incident.update({
-    where: { id: req.params.id },
-    data: {
-      status: 'RESOLVED',
-      resolvedAt: now,
-      mttrMs: now.getTime() - new Date(incident.detectedAt).getTime(),
-      events: {
-        create: [{ type: 'RESOLVED', message: 'Resolved by admin', actorId: req.user.id }],
-      },
-    },
-  });
-  return ok(res, { id: updated.id, status: updated.status });
-});
-
 export default router;

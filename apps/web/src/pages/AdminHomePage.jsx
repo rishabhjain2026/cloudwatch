@@ -95,6 +95,7 @@ export function AdminHomePage() {
           </div>
           <div className="flex flex-wrap gap-2">
             <Button as={Link} to="/admin/alerts" variant="secondary">Alert management</Button>
+            <Button as={Link} to="/admin/incidents" variant="secondary">Incident management</Button>
             <Button as={Link} to="/dashboard" variant="secondary">
               View public demo
             </Button>

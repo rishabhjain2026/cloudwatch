@@ -1,6 +1,7 @@
 import { prisma } from '../lib/prisma.js';
 import { compareMetric, evaluateMetricWindow } from './alertPolicy.js';
 import { routeAlertEvent } from './notificationService.js';
+import { createIncidentFromAlert } from './incidentService.js';
 
 const activeStatuses = ['OPEN', 'ACKNOWLEDGED'];
 const metricKinds = { CPU: 'CPU', MEM: 'MEM', DISK: 'DISK', NET_IN: 'NET_IN', NET_OUT: 'NET_OUT', LOAD: 'LOAD' };
@@ -50,7 +51,7 @@ async function recordEvaluation({ rule, server, category, resourceType, resource
       const eventType = existing ? 'ALERT_REOPENED' : 'ALERT_CREATED';
       await prisma.alertEvent.create({ data: { alertId: alert.id, type: eventType, message: existing ? 'Alert condition returned after resolution.' : 'Alert condition detected.' } });
       if (!withinCooldown) await routeAlertEvent(alert);
-      if (alert.severity === 'CRITICAL' && server?.id) await maybeCreateIncident(alert, server.id);
+      await createIncidentFromAlert(alert.id);
     }
     return alert;
   }
@@ -71,6 +72,7 @@ export async function evaluateSignal({ key, alertType, category, resourceType, r
     if (!existing || existing.status === 'RESOLVED') {
       await prisma.alertEvent.create({ data: { alertId: alert.id, type: existing ? 'ALERT_REOPENED' : 'ALERT_CREATED', message: description || title, meta: meta || undefined } });
       await routeAlertEvent(alert);
+      await createIncidentFromAlert(alert.id);
     }
   } else if (existing && activeStatuses.includes(existing.status)) {
     const alert = await prisma.alert.update({ where: { deduplicationKey: key }, data: { status: 'RESOLVED', resolvedAt: new Date(), lastEvaluatedAt: new Date() } });
@@ -147,13 +149,4 @@ export async function evaluateHeartbeats(staleSec) {
     await evaluateSignal({ key: `agent-disconnected:${server.id}`, alertType: 'AGENT_DISCONNECTED', category: 'AGENT', resourceType: 'HOST', resourceId: server.id, resourceName: server.name, serverId: server.id, title: `Agent disconnected: ${server.name}`, description: `No agent heartbeat received for at least ${staleSec} seconds.`, triggered: stale, severity: 'HIGH' });
     if (!stale) await prisma.server.updateMany({ where: { id: server.id, status: 'OFFLINE' }, data: { status: 'HEALTHY' } });
   }
-}
-
-async function maybeCreateIncident(alert, serverId) {
-  const existing = await prisma.incident.findFirst({ where: { serverId, isDemo: false, status: { in: ['DETECTED', 'OPEN', 'ACKNOWLEDGED', 'INVESTIGATING'] } } });
-  if (existing) { await prisma.incidentAlert.create({ data: { incidentId: existing.id, alertId: alert.id } }).catch(() => {}); return; }
-  const server = await prisma.server.findUnique({ where: { id: serverId } });
-  const last = await prisma.incident.findFirst({ orderBy: { createdAt: 'desc' }, select: { publicId: true } });
-  const next = Number(last?.publicId?.match(/\d+/)?.[0] || 999) + 1;
-  await prisma.incident.create({ data: { publicId: `INC-${next}`, title: `${alert.title} on ${server?.name ?? serverId}`, description: alert.description, severity: alert.severity, status: 'DETECTED', serverId, isDemo: false, events: { create: [{ type: 'DETECTED', message: `Incident auto-created from alert: ${alert.title}` }] }, alerts: { create: [{ alertId: alert.id }] } } });
 }

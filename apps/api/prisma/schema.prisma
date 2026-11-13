@@ -58,6 +58,31 @@ enum IncidentStatus {
   CLOSED
 }
 
+enum IncidentPriority {
+  P0
+  P1
+  P2
+  P3
+}
+
+enum IncidentAnalysisStatus {
+  PENDING
+  PROCESSING
+  COMPLETE
+  FAILED
+}
+
+enum IncidentChatRole {
+  USER
+  ASSISTANT
+}
+
+enum PostmortemStatus {
+  DRAFT
+  AI_DRAFT
+  APPROVED
+}
+
 enum LogLevel {
   DEBUG
   INFO
@@ -136,6 +161,11 @@ model User {
   alertTeamMember AlertTeamMember?
   alertEvents AlertEvent[]
   alertRoutingRules AlertRoutingRule[]
+  incidentAnalysesRequested IncidentAIAnalysis[] @relation("IncidentAIAnalysisRequester")
+  incidentChatMessages IncidentAIChatMessage[]
+  incidentPostmortemsResponsible IncidentPostmortem[] @relation("PostmortemResponsible")
+  incidentPostmortemsApproved IncidentPostmortem[] @relation("PostmortemApproved")
+  incidentAutomationRules IncidentAutomationRule[] @relation("IncidentAutomationCreator")
 
   @@index([roleId])
 }
@@ -479,12 +509,28 @@ model Incident {
   title        String
   description  String?
   severity     Severity
+  priority     IncidentPriority @default(P2)
   status       IncidentStatus @default(DETECTED)
+  category     String @default("INFRASTRUCTURE")
+  impactDescription String?
+  resourceType String?
+  resourceId   String?
+  resourceName String?
+  correlationKey String?
+  reopenedCount Int @default(0)
+  lastReopenedAt DateTime?
+  rootCause String?
+  resolutionDescription String?
+  actionsTaken String?
+  preventiveActions String?
+  ackAt DateTime?
+  investigatingAt DateTime?
   assigneeId   String?
   assignee     User?          @relation("IncidentAssignee", fields: [assigneeId], references: [id])
   serverId     String?
   server       Server?        @relation(fields: [serverId], references: [id])
   isDemo       Boolean        @default(false)
+  isPublic     Boolean        @default(false)
   detectedAt   DateTime       @default(now())
   resolvedAt   DateTime?
   closedAt     DateTime?
@@ -494,11 +540,20 @@ model Incident {
   updatedAt    DateTime       @updatedAt
   events       IncidentEvent[]
   alerts       IncidentAlert[]
+  analyses     IncidentAIAnalysis[]
+  chatMessages IncidentAIChatMessage[]
+  postmortem   IncidentPostmortem?
+  notifications Notification[]
+  deliveries NotificationDelivery[]
   logs         LogEntry[]
   anomalies    Anomaly[]
 
   @@index([status, severity])
   @@index([isDemo])
+  @@index([category, status, detectedAt])
+  @@index([resourceType, resourceId, status])
+  @@index([correlationKey, status, detectedAt])
+  @@index([assigneeId, status])
 }
 
 model IncidentEvent {
@@ -510,6 +565,8 @@ model IncidentEvent {
   meta       Json?
   actorId    String?
   actor      User?    @relation(fields: [actorId], references: [id])
+  previousStatus String?
+  newStatus String?
   createdAt  DateTime @default(now())
 
   @@index([incidentId, createdAt])
@@ -520,8 +577,98 @@ model IncidentAlert {
   alertId    String
   incident   Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
   alert      Alert    @relation(fields: [alertId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
 
   @@id([incidentId, alertId])
+}
+
+model IncidentAutomationRule {
+  id String @id @default(cuid())
+  name String
+  category String?
+  alertType String?
+  resourceType String?
+  minimumSeverity Severity @default(CRITICAL)
+  enabled Boolean @default(true)
+  correlationWindowSec Int @default(900)
+  correlateByResource Boolean @default(true)
+  correlateByCategory Boolean @default(true)
+  correlateByAlertType Boolean @default(false)
+  createdById String?
+  createdBy User? @relation("IncidentAutomationCreator", fields:[createdById], references:[id], onDelete:SetNull)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([enabled, category, alertType])
+}
+
+model IncidentAIAnalysis {
+  id String @id @default(cuid())
+  incidentId String
+  incident Incident @relation(fields:[incidentId], references:[id], onDelete:Cascade)
+  requestedById String?
+  requestedBy User? @relation("IncidentAIAnalysisRequester", fields:[requestedById], references:[id], onDelete:SetNull)
+  status IncidentAnalysisStatus @default(PENDING)
+  attemptCount Int @default(0)
+  provider String
+  model String
+  version Int
+  result Json?
+  failureCode String?
+  requestedAt DateTime @default(now())
+  startedAt DateTime?
+  completedAt DateTime?
+  chatMessages IncidentAIChatMessage[]
+  postmortems IncidentPostmortem[]
+
+  @@unique([incidentId, version])
+  @@index([incidentId, status, requestedAt])
+}
+
+model IncidentAIChatMessage {
+  id String @id @default(cuid())
+  incidentId String
+  incident Incident @relation(fields:[incidentId], references:[id], onDelete:Cascade)
+  analysisId String?
+  analysis IncidentAIAnalysis? @relation(fields:[analysisId], references:[id], onDelete:SetNull)
+  userId String?
+  user User? @relation(fields:[userId], references:[id], onDelete:SetNull)
+  role IncidentChatRole
+  content String
+  createdAt DateTime @default(now())
+
+  @@index([incidentId, createdAt])
+  @@index([analysisId, createdAt])
+}
+
+model IncidentPostmortem {
+  id String @id @default(cuid())
+  incidentId String @unique
+  incident Incident @relation(fields:[incidentId], references:[id], onDelete:Cascade)
+  summary String?
+  rootCause String?
+  impact String?
+  startedAt DateTime?
+  detectedAt DateTime?
+  acknowledgedAt DateTime?
+  resolvedAt DateTime?
+  downtimeMs Int?
+  resolutionSteps String?
+  lessonsLearned String?
+  preventiveActions String?
+  responsibleUserId String?
+  responsibleUser User? @relation("PostmortemResponsible", fields:[responsibleUserId], references:[id], onDelete:SetNull)
+  status PostmortemStatus @default(DRAFT)
+  aiDraft Boolean @default(false)
+  sourceAnalysisId String?
+  sourceAnalysis IncidentAIAnalysis? @relation(fields:[sourceAnalysisId], references:[id], onDelete:SetNull)
+  approvedById String?
+  approvedBy User? @relation("PostmortemApproved", fields:[approvedById], references:[id], onDelete:SetNull)
+  approvedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, updatedAt])
 }
 
 model LogEntry {
@@ -618,6 +765,8 @@ model Notification {
   user      User?               @relation(fields: [userId], references: [id])
   alertId   String?
   alert     Alert?              @relation(fields: [alertId], references: [id], onDelete: SetNull)
+  incidentId String?
+  incident Incident? @relation(fields:[incidentId], references:[id], onDelete:SetNull)
   deduplicationKey String?      @unique
   channel   NotificationChannel @default(IN_APP)
   title     String
@@ -628,18 +777,23 @@ model Notification {
 
   @@index([userId, readAt])
   @@index([alertId, createdAt])
+  @@index([incidentId, createdAt])
 }
 
 model NotificationDelivery {
   id             String                    @id @default(cuid())
-  alertId        String
-  alert          Alert                     @relation(fields: [alertId], references: [id], onDelete: Cascade)
+  alertId        String?
+  alert          Alert?                    @relation(fields: [alertId], references: [id], onDelete: Cascade)
+  incidentId     String?
+  incident       Incident?                 @relation(fields: [incidentId], references: [id], onDelete: Cascade)
   memberId       String
   member         AlertTeamMember           @relation(fields: [memberId], references: [id], onDelete: Restrict)
   routingRuleId  String?
   routingRule    AlertRoutingRule?         @relation(fields: [routingRuleId], references: [id], onDelete: SetNull)
   channel        NotificationChannel
   recipientEmail String?
+  subject String?
+  body String?
   status         NotificationDeliveryStatus @default(PENDING)
   deduplicationKey String                  @unique
   attemptCount   Int                       @default(0)
@@ -655,6 +809,7 @@ model NotificationDelivery {
 
   @@index([status, nextAttemptAt])
   @@index([alertId, createdAt])
+  @@index([incidentId, createdAt])
   @@index([memberId, createdAt])
 }
 
