@@ -103,62 +103,7 @@ export function AwsResourcesPage() {
         <SummaryCard label="Service types" value={summary?.byService?.length ?? '—'} detail={latest?.serviceErrors?.length ? `${latest.serviceErrors.length} permission/API error group(s)` : 'No recorded service errors'} />
       </div>
 
-      {latest?.resourceExplorerStatus ? (
         <Card>
-          <CardHeader>
-            <div><CardTitle>Resource Explorer coverage</CardTitle><CardDescription>Explorer results depend on enabled indexes and per-region permissions.</CardDescription></div>
-            <Badge tone={latest.resourceExplorerStatus.coverageComplete ? 'success' : 'warning'}>
-              {latest.resourceExplorerStatus.coverageComplete ? 'Complete indexes' : 'Partial / unavailable'}
-            </Badge>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <p className="text-sm text-text-muted">
-              Aggregator: {latest.resourceExplorerStatus.aggregatorRegion || 'not configured'} · {latest.resourceExplorerStatus.supportedResourceTypeCount || 0} resource types supported by Resource Explorer.
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {(latest.resourceExplorerStatus.indexRegions || []).map((index) => (
-                <Badge key={`${index.region}-${index.type}`} tone={index.type === 'AGGREGATOR' ? 'accent' : 'neutral'}>
-                  {index.region} · {index.type.toLowerCase()} · {String(index.state || 'unknown').toLowerCase()}
-                </Badge>
-              ))}
-              {!(latest.resourceExplorerStatus.indexRegions || []).length ? <span className="text-sm text-text-subtle">No user-owned indexes were returned.</span> : null}
-            </div>
-            {latest.incompleteRegions?.length ? <p className="text-sm text-warning">Incomplete regions: {latest.incompleteRegions.join(', ')}</p> : null}
-            {latest.resourceExplorerStatus.viewFilters?.length ? <p className="text-sm text-warning">Restricted default views found in: {latest.resourceExplorerStatus.viewFilters.map((view) => view.region).join(', ')}</p> : null}
-          </CardContent>
-        </Card>
-      ) : null}
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        <CountsCard title="Resources by AWS service" rows={summary?.byService || []} labelKey="service" />
-        <CountsCard title="Resources by region" rows={summary?.byRegion || []} labelKey="region" />
-      </div>
-
-      {latest?.serviceErrors?.length ? (
-        <Card>
-          <CardHeader>
-            <div><CardTitle className="flex items-center gap-2"><AlertTriangle className="h-4 w-4 text-warning" />Service errors</CardTitle><CardDescription>Failures are grouped by service, region and API operation.</CardDescription></div>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {latest.serviceErrors.map((issue, index) => (
-              <div key={`${issue.service}-${issue.region}-${issue.operation}-${index}`} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border px-3 py-2 text-sm">
-                <span className="text-text">{issue.service} · {issue.operation}{issue.region ? ` · ${issue.region}` : ''}</span>
-                <span className="text-text-muted">{issue.status} · {issue.affectedResources} affected</span>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      ) : null}
-
-      {latest?.unsupportedResourceTypes?.length ? (
-        <Card><CardHeader><div><CardTitle>Unsupported resource types</CardTitle><CardDescription>These returned resource types are not present in the current Resource Explorer type catalog.</CardDescription></div></CardHeader><CardContent className="flex flex-wrap gap-2">{latest.unsupportedResourceTypes.map((type) => <Badge key={type} tone="warning">{type}</Badge>)}</CardContent></Card>
-      ) : null}
-
-      {latest?.unintegratedResourceTypes?.length ? (
-        <Card><CardHeader><div><CardTitle>Resource Explorer only</CardTitle><CardDescription>These types are discovered but do not yet have service-specific detail enrichment.</CardDescription></div></CardHeader><CardContent className="flex flex-wrap gap-2">{latest.unintegratedResourceTypes.map((type) => <Badge key={type} tone="info">{type}</Badge>)}</CardContent></Card>
-      ) : null}
-
-      <Card>
         <CardHeader>
           <div><CardTitle>Inventory</CardTitle><CardDescription>{meta.total} resource(s) match the current filters.</CardDescription></div>
         </CardHeader>
@@ -201,6 +146,107 @@ export function AwsResourcesPage() {
           </div>
         </CardContent>
       </Card>
+      
+      {latest?.resourceExplorerStatus ? (
+        <Card>
+          <CardHeader>
+            <div><CardTitle>Resource Explorer coverage</CardTitle><CardDescription>Explorer results depend on enabled indexes and per-region permissions.</CardDescription></div>
+            <Badge tone={latest.resourceExplorerStatus.coverageComplete ? 'success' : 'warning'}>
+              {latest.resourceExplorerStatus.coverageComplete ? 'Complete indexes' : 'Partial / unavailable'}
+            </Badge>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-text-muted">
+              Aggregator: {latest.resourceExplorerStatus.aggregatorRegion || 'not configured'} · {latest.resourceExplorerStatus.supportedResourceTypeCount || 0} resource types supported by Resource Explorer.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {(latest.resourceExplorerStatus.indexRegions || []).map((index) => (
+                <Badge key={`${index.region}-${index.type}`} tone={index.type === 'AGGREGATOR' ? 'accent' : 'neutral'}>
+                  {index.region} · {index.type.toLowerCase()} · {String(index.state || 'unknown').toLowerCase()}
+                </Badge>
+              ))}
+              {!(latest.resourceExplorerStatus.indexRegions || []).length ? <span className="text-sm text-text-subtle">No user-owned indexes were returned.</span> : null}
+            </div>
+            {latest.incompleteRegions?.length ? <p className="text-sm text-warning">Incomplete regions: {latest.incompleteRegions.join(', ')}</p> : null}
+            {latest.resourceExplorerStatus.viewFilters?.length ? <p className="text-sm text-warning">Restricted default views found in: {latest.resourceExplorerStatus.viewFilters.map((view) => view.region).join(', ')}</p> : null}
+          </CardContent>
+        </Card>
+      ) : null}
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <CountsCard title="Resources by AWS service" rows={summary?.byService || []} labelKey="service" />
+        <CountsCard title="Resources by region" rows={summary?.byRegion || []} labelKey="region" />
+      </div>
+
+      {/* <Card>
+        <CardHeader>
+          <div><CardTitle>Inventory2</CardTitle><CardDescription>{meta.total} resource(s) match the current filters.</CardDescription></div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
+            <Input aria-label="Search resources" placeholder="Search names or IDs" value={filters.search} onChange={(event) => updateFilter('search', event.target.value)} />
+            <Select aria-label="Filter by service" value={filters.service} onChange={(event) => updateFilter('service', event.target.value)}>
+              <option value="">All services</option>{serviceOptions.map((item) => <option key={item.service} value={item.service}>{item.service} ({item.count})</option>)}
+            </Select>
+            <Select aria-label="Filter by region" value={filters.region} onChange={(event) => updateFilter('region', event.target.value)}>
+              <option value="">All regions</option>{regionOptions.map((item) => <option key={item.region} value={item.region}>{item.region} ({item.count})</option>)}
+            </Select>
+            <Select aria-label="Filter by resource type" value={filters.resourceType} onChange={(event) => updateFilter('resourceType', event.target.value)}>
+              <option value="">All resource types</option>{typeOptions.map((item) => <option key={item.resourceType} value={item.resourceType}>{item.resourceType} ({item.count})</option>)}
+            </Select>
+            <Select aria-label="Filter by state" value={filters.status} onChange={(event) => updateFilter('status', event.target.value)}>
+              <option value="">All states</option><option value="missing">Missing</option><option value="stale">Stale</option>{statusOptions.map((status) => <option key={status} value={status}>{status}</option>)}
+            </Select>
+          </div>
+          {loading ? <p className="py-8 text-center text-sm text-text-muted">Loading AWS inventory…</p> : resources.length ? (
+            <Table>
+              <THead><TH>Resource</TH><TH>Service / type</TH><TH>Region</TH><TH>State</TH><TH>Enrichment</TH><TH>Last discovered</TH></THead>
+              <TBody>{resources.map((resource) => (
+                <TR key={resource.id}>
+                  <TD><Link className="font-medium text-accent hover:underline" to={`/dashboard/aws-resources/${resource.id}`}>{resource.name || resource.resourceId}</Link><p className="mt-0.5 font-mono text-xs text-text-subtle">{resource.resourceId}</p></TD>
+                  <TD><span className="uppercase text-text">{resource.service}</span><p className="text-xs text-text-subtle">{resource.resourceType}</p></TD>
+                  <TD className="text-text-muted">{resource.region || 'Global'}</TD>
+                  <TD><Badge tone={statusTone[resource.status] || 'neutral'}>{resource.status}</Badge></TD>
+                  <TD><Badge tone={resource.metadata?.enrichmentStatus === 'service-api' ? 'success' : 'warning'}>{resource.metadata?.enrichmentStatus || 'unavailable'}</Badge></TD>
+                  <TD className="text-xs text-text-muted">{formatRelative(resource.lastDiscoveredAt)}{resource.missingSince ? <p className="text-warning">Missing since {formatRelative(resource.missingSince)}</p> : null}</TD>
+                </TR>
+              ))}</TBody>
+            </Table>
+          ) : (
+            <EmptyState icon={Cloud} title="No AWS resources found" description={latest ? 'The last discovery returned no resources. Check its service status and permissions above.' : 'An administrator can run the first AWS sync after configuring AWS access.'} />
+          )}
+          <div className="flex items-center justify-between border-t border-border pt-3 text-sm text-text-muted">
+            <span>Page {page} of {pages}</span>
+            <div className="flex gap-2"><Button variant="secondary" size="sm" disabled={page <= 1} onClick={() => setPage((value) => value - 1)}>Previous</Button><Button variant="secondary" size="sm" disabled={page >= pages} onClick={() => setPage((value) => value + 1)}>Next</Button></div>
+          </div>
+        </CardContent>
+      </Card> */}
+
+      {latest?.serviceErrors?.length ? (
+        <Card>
+          <CardHeader>
+            <div><CardTitle className="flex items-center gap-2"><AlertTriangle className="h-4 w-4 text-warning" />Service errors</CardTitle><CardDescription>Failures are grouped by service, region and API operation.</CardDescription></div>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {latest.serviceErrors.map((issue, index) => (
+              <div key={`${issue.service}-${issue.region}-${issue.operation}-${index}`} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border px-3 py-2 text-sm">
+                <span className="text-text">{issue.service} · {issue.operation}{issue.region ? ` · ${issue.region}` : ''}</span>
+                <span className="text-text-muted">{issue.status} · {issue.affectedResources} affected</span>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {latest?.unsupportedResourceTypes?.length ? (
+        <Card><CardHeader><div><CardTitle>Unsupported resource types</CardTitle><CardDescription>These returned resource types are not present in the current Resource Explorer type catalog.</CardDescription></div></CardHeader><CardContent className="flex flex-wrap gap-2">{latest.unsupportedResourceTypes.map((type) => <Badge key={type} tone="warning">{type}</Badge>)}</CardContent></Card>
+      ) : null}
+
+      {latest?.unintegratedResourceTypes?.length ? (
+        <Card><CardHeader><div><CardTitle>Resource Explorer only</CardTitle><CardDescription>These types are discovered but do not yet have service-specific detail enrichment.</CardDescription></div></CardHeader><CardContent className="flex flex-wrap gap-2">{latest.unintegratedResourceTypes.map((type) => <Badge key={type} tone="info">{type}</Badge>)}</CardContent></Card>
+      ) : null}
+
+      
     </div>
   );
 }
