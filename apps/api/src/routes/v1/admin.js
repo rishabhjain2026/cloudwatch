@@ -6,11 +6,13 @@ import { prisma } from '../../lib/prisma.js';
 import { ok, fail } from '../../utils/response.js';
 import { agentRegisterRouter } from './agent.js';
 import { awsErrorStatus, getAwsConnectionStatus, getLatestAwsSync, syncAwsResources } from '../../services/awsService.js';
+import alertManagementRoutes from './alertManagement.js';
 
 const router = Router();
 
 // All admin routes require authentication
 router.use(requireAuth, requireRole('ADMIN'));
+router.use('/alert-center', alertManagementRoutes);
 
 // ── Agent registration ────────────────────────────────────────────────────────
 router.use('/agents', agentRegisterRouter);

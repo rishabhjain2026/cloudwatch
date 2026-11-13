@@ -14,11 +14,14 @@
  *   AGENT_ENV         — environment (production/staging/dev)
  *   AGENT_REGION      — region label
  *   AGENT_PROVIDER    — provider label (AWS/GCP/VPS/etc)
+ *   AGENT_AWS_INSTANCE_ID — associate this agent to an existing discovered EC2 instance
  */
 
 import https from 'node:https';
 import http from 'node:http';
+import { writeFile } from 'node:fs/promises';
 import os from 'node:os';
+import path from 'node:path';
 import { URL } from 'node:url';
 
 const apiUrl = process.env.INFRAPULSE_API_URL;
@@ -88,10 +91,11 @@ async function main() {
   const payload = {
     hostname,
     name: process.env.AGENT_NAME || hostname,
-    os: `${os.type()} ${os.release()}`,
+    os: process.env.AGENT_OS || `${os.type()} ${os.release()}`,
     environment: process.env.AGENT_ENV || 'production',
     region: process.env.AGENT_REGION || '',
     provider: process.env.AGENT_PROVIDER || '',
+    ...(process.env.AGENT_AWS_INSTANCE_ID ? { awsInstanceId: process.env.AGENT_AWS_INSTANCE_ID } : {}),
   };
 
   const regRes = await request('/api/v1/admin/agents/register', 'POST', payload, {
@@ -105,6 +109,25 @@ async function main() {
   }
 
   const { serverId, agentId, token } = regRes.body.data;
+
+  const tokenFile = process.env.AGENT_TOKEN_FILE;
+  if (tokenFile) {
+    const contents = [
+      `INFRAPULSE_API_URL=${apiUrl}`,
+      `INFRAPULSE_TOKEN=${token}`,
+      `INFRAPULSE_INTERVAL_SEC=${process.env.INFRAPULSE_INTERVAL_SEC || '30'}`,
+      'INFRAPULSE_DOCKER=true',
+      `INFRAPULSE_DOCKER_METRICS_INTERVAL_SEC=${process.env.INFRAPULSE_DOCKER_METRICS_INTERVAL_SEC || '30'}`,
+      `INFRAPULSE_DOCKER_INVENTORY_INTERVAL_SEC=${process.env.INFRAPULSE_DOCKER_INVENTORY_INTERVAL_SEC || '60'}`,
+    ].join('\n') + '\n';
+    await writeFile(path.resolve(tokenFile), contents, { flag: 'wx', mode: 0o600 });
+    console.log(`Agent token was written to the requested local config file (${path.basename(tokenFile)}).`);
+    console.log('The token will not be printed again.');
+    console.log(`  Server ID : ${serverId}`);
+    console.log(`  Agent ID  : ${agentId}`);
+    console.log(`  Hostname  : ${hostname}`);
+    return;
+  }
 
   console.log('\n========================================');
   console.log('  Agent registered successfully!');

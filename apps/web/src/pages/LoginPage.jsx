@@ -15,24 +15,24 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 
 export function LoginPage() {
-  const { login, isAdmin, loading } = useAuth();
+  const { login, user, loading } = useAuth();
   const { push } = useToast();
   const navigate = useNavigate();
-  const [email, setEmail] = useState('admin@infrapulse.local');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  if (!loading && isAdmin) {
-    return <Navigate to="/admin" replace />;
+  if (!loading && user) {
+    return <Navigate to={user.role === 'ADMIN' ? '/admin' : '/dashboard'} replace />;
   }
 
   const onSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
     try {
-      await login(email, password);
-      push('Signed in as administrator.', 'success');
-      navigate('/admin');
+      const result = await login(email, password);
+      push('Signed in.', 'success');
+      navigate(result.user?.role === 'ADMIN' ? '/admin' : '/dashboard');
     } catch (err) {
       push(err.message || 'Login failed', 'error');
     } finally {
@@ -48,10 +48,9 @@ export function LoginPage() {
         <CardHeader>
           <div>
             <BrandMark />
-            <CardTitle className="mt-4 text-lg">Administrator login</CardTitle>
+            <CardTitle className="mt-4 text-lg">Sign in to InfraPulse</CardTitle>
             <CardDescription>
-              Secure httpOnly session cookie + CSRF. Public viewers do not need an account.
-              admin password : InfraPulseAdmin!234
+              Use your InfraPulse account. Sessions use a secure httpOnly cookie.
             </CardDescription>
           </div>
           <Badge tone="accent">Admin</Badge>
@@ -88,11 +87,7 @@ export function LoginPage() {
               {submitting ? 'Signing in…' : 'Sign in'}
             </Button>
           </form>
-          <p className="mt-4 text-center text-sm text-text-muted">
-            <Link to="/dashboard" className="text-accent hover:underline">
-              Continue as public viewer
-            </Link>
-          </p>
+          <p className="mt-4 text-center text-sm text-text-muted"><Link to="/dashboard" className="text-accent hover:underline">Continue as public viewer</Link></p>
         </CardContent>
       </Card>
     </div>

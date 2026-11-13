@@ -2,10 +2,12 @@ import { env } from '../config/env.js';
 import { evaluateHeartbeats } from './alertService.js';
 import { runDueApiChecks } from './apiCheckerService.js';
 import { syncAwsResources } from './awsService.js';
+import { processNotificationQueue } from './notificationService.js';
 
 let heartbeatTimer = null;
 let apiCheckTimer = null;
 let awsSyncTimer = null;
+let notificationTimer = null;
 
 export function startScheduler() {
   // Heartbeat watchdog — runs every 30 seconds
@@ -29,6 +31,10 @@ export function startScheduler() {
         console.error('[scheduler] API checker error:', err.message);
       }
     }, 30_000);
+    notificationTimer = setInterval(async () => {
+      try { await processNotificationQueue(); }
+      catch (err) { console.error('[scheduler] notification worker error:', err.message); }
+    }, 15_000);
   }
 
   if (env.AWS_REGION) {
@@ -50,4 +56,5 @@ export function stopScheduler() {
   if (heartbeatTimer) clearInterval(heartbeatTimer);
   if (apiCheckTimer) clearInterval(apiCheckTimer);
   if (awsSyncTimer) clearInterval(awsSyncTimer);
+  if (notificationTimer) clearInterval(notificationTimer);
 }

@@ -28,7 +28,7 @@ export async function metricsHandler(req, res) {
 
 /** POST /api/v1/agent/docker — agent-authenticated */
 export async function dockerSyncHandler(req, res) {
-  const result = await syncDockerContainers(req.agent.serverId, req.body.containers);
+  const result = await syncDockerContainers(req.agent.serverId, req.body);
   return ok(res, result);
 }
 

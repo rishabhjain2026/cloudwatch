@@ -2,6 +2,7 @@ import https from 'node:https';
 import http from 'node:http';
 import { URL } from 'node:url';
 import { prisma } from '../lib/prisma.js';
+import { evaluateSignal, evaluateApiMonitorRules } from './alertService.js';
 
 /**
  * Run a single HTTP/HTTPS health check against a URL.
@@ -121,41 +122,10 @@ export async function runDueApiChecks() {
       },
     });
 
-    // Alert on SSL expiry < 14 days
-    if (result.sslDaysRemaining != null && result.sslDaysRemaining < 14) {
-      const existingSslAlert = await prisma.alert.findFirst({
-        where: {
-          apiMonitorId: monitor.id,
-          title: { contains: 'SSL certificate expiring' },
-          status: { in: ['OPEN', 'ACKNOWLEDGED'] },
-        },
-      });
-      if (!existingSslAlert) {
-        await prisma.alert.create({
-          data: {
-            apiMonitorId: monitor.id,
-            title: `SSL certificate expiring: ${monitor.name}`,
-            description: `Certificate expires in ${result.sslDaysRemaining} days`,
-            severity: result.sslDaysRemaining < 7 ? 'CRITICAL' : 'HIGH',
-            status: 'OPEN',
-            isDemo: false,
-            triggeredAt: new Date(),
-          },
-        });
-      }
-    }
+    await evaluateSignal({ key:`api-unavailable:${monitor.id}`,alertType:'API_UNAVAILABLE',category:'APPLICATION',resourceType:'API_MONITOR',resourceId:monitor.id,resourceName:monitor.name,apiMonitorId:monitor.id,title:`API unavailable: ${monitor.name}`,description:result.error||`Expected HTTP ${monitor.expectedStatus}; received ${result.statusCode ?? 'no response'}.`,triggered:!result.success,severity:'HIGH',meta:{statusCode:result.statusCode,latencyMs:result.latencyMs} });
+    await evaluateApiMonitorRules(monitor);
 
-    // Resolve SSL alert if cert is now healthy
-    if (result.sslDaysRemaining != null && result.sslDaysRemaining >= 14) {
-      await prisma.alert.updateMany({
-        where: {
-          apiMonitorId: monitor.id,
-          title: { contains: 'SSL certificate expiring' },
-          status: { in: ['OPEN', 'ACKNOWLEDGED'] },
-        },
-        data: { status: 'RESOLVED', resolvedAt: new Date() },
-      });
-    }
+    if (result.sslDaysRemaining != null) await evaluateSignal({ key:`ssl-certificate-expiring:${monitor.id}`,alertType:'SSL_CERT_EXPIRING',category:'APPLICATION',resourceType:'API_MONITOR',resourceId:monitor.id,resourceName:monitor.name,apiMonitorId:monitor.id,title:`SSL certificate expiring: ${monitor.name}`,description:`Certificate expires in ${result.sslDaysRemaining} days.`,triggered:result.sslDaysRemaining<14,severity:result.sslDaysRemaining<7?'CRITICAL':'HIGH',meta:{sslDaysRemaining:result.sslDaysRemaining} });
 
     ran++;
   }

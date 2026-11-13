@@ -40,6 +40,7 @@ async function request(path, options = {}) {
 export const api = {
   get: (path) => request(path),
   post: (path, body) => request(path, { method: 'POST', body: JSON.stringify(body ?? {}) }),
+  patch: (path, body) => request(path, { method: 'PATCH', body: JSON.stringify(body ?? {}) }),
   health: () => request('/api/health'),
 
   // Public read-only endpoints
@@ -54,7 +55,8 @@ export const api = {
     ),
   publicDeployments: () => request('/api/v1/public/deployments'),
   publicApis: () => request('/api/v1/public/apis'),
-  publicDocker: () => request('/api/v1/public/docker'),
+  publicDocker: (query = '') => request(`/api/v1/public/docker${query ? `?${query}` : ''}`),
+  publicDockerContainer: (id) => request(`/api/v1/public/docker/containers/${encodeURIComponent(id)}`),
   publicNetwork: () => request('/api/v1/public/network'),
   publicCosts: () => request('/api/v1/public/costs'),
   publicDomains: () => request('/api/v1/public/domains'),

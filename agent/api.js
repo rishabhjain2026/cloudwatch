@@ -38,7 +38,9 @@ export function createApiClient(apiUrl, token, timeoutMs = 10000) {
             if (res.statusCode >= 200 && res.statusCode < 300) {
               resolve(parsed);
             } else {
-              reject(new Error(`HTTP ${res.statusCode}: ${parsed?.error?.message || raw}`));
+              const error = new Error(`HTTP ${res.statusCode}: ${parsed?.error?.message || raw}`);
+              error.statusCode = res.statusCode;
+              reject(error);
             }
           } catch {
             reject(new Error(`HTTP ${res.statusCode}: non-JSON response`));
@@ -51,7 +53,8 @@ export function createApiClient(apiUrl, token, timeoutMs = 10000) {
       req.write(data);
       req.end();
     }).catch(async (err) => {
-      if (retries > 0) {
+      const retryable = err.statusCode == null || err.statusCode === 429 || err.statusCode >= 500;
+      if (retries > 0 && retryable) {
         await new Promise(r => setTimeout(r, delayMs));
         return post(path, body, retries - 1, delayMs * 1.5);
       }

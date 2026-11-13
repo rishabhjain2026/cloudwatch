@@ -71,6 +71,19 @@ enum NotificationChannel {
   EMAIL
 }
 
+enum AlertMemberType {
+  INTERNAL
+  EXTERNAL
+}
+
+enum NotificationDeliveryStatus {
+  PENDING
+  RETRYING
+  SENDING
+  SENT
+  FAILED
+}
+
 enum RemediationStatus {
   SUGGESTED
   PENDING_APPROVAL
@@ -120,6 +133,9 @@ model User {
   remediationsRequested RemediationAction[] @relation("RemediationRequestedBy")
   remediationsApproved  RemediationAction[] @relation("RemediationApprovedBy")
   alertRules   AlertRule[]
+  alertTeamMember AlertTeamMember?
+  alertEvents AlertEvent[]
+  alertRoutingRules AlertRoutingRule[]
 
   @@index([roleId])
 }
@@ -140,6 +156,14 @@ model Server {
   awsSyncedAt    DateTime?
   ipAddress       String?
   publicIpAddress String?
+  dockerEnabled   Boolean           @default(false)
+  dockerAvailable Boolean?
+  dockerEngineVersion String?
+  dockerApiVersion String?
+  dockerRunningContainers Int?
+  dockerStoppedContainers Int?
+  dockerTotalContainers Int?
+  dockerImageCount Int?
   status          ServerStatus      @default(UNKNOWN)
   isDemo          Boolean           @default(false)
   lastHeartbeatAt DateTime?
@@ -149,6 +173,7 @@ model Server {
   agent           Agent?
   metrics         MetricSample[]
   containers      DockerContainer[]
+  dockerHeartbeats DockerAgentHeartbeat[]
   alerts          Alert[]
   incidents       Incident[]
   logs            LogEntry[]
@@ -157,6 +182,7 @@ model Server {
 
   @@index([isDemo, status])
   @@index([lastHeartbeatAt])
+  @@index([dockerEnabled, lastHeartbeatAt])
 }
 
 model AwsResource {
@@ -249,6 +275,19 @@ model DockerContainer {
   memUsageMb    Float?
   restartCount  Int      @default(0)
   startedAt     DateTime?
+  createdAtDocker DateTime?
+  lastSeenAt    DateTime?
+  missingSince  DateTime?
+  memoryUsageBytes BigInt?
+  memoryLimitBytes BigInt?
+  networkRxBytes BigInt?
+  networkTxBytes BigInt?
+  blockReadBytes BigInt?
+  blockWriteBytes BigInt?
+  ports         Json?
+  networks      Json?
+  mounts        Json?
+  metrics       DockerContainerMetric[]
   raw           Json?
   syncedAt      DateTime @default(now())
   createdAt     DateTime @default(now())
@@ -256,25 +295,68 @@ model DockerContainer {
 
   @@unique([serverId, containerId])
   @@index([serverId, state])
+  @@index([serverId, missingSince, lastSeenAt])
+}
+
+model DockerContainerMetric {
+  id             String          @id @default(cuid())
+  containerDbId  String
+  container      DockerContainer @relation(fields: [containerDbId], references: [id], onDelete: Cascade)
+  cpuPercent     Float?
+  memoryUsageBytes BigInt?
+  memoryLimitBytes BigInt?
+  memoryPercent  Float?
+  networkRxBytes BigInt?
+  networkTxBytes BigInt?
+  blockReadBytes BigInt?
+  blockWriteBytes BigInt?
+  collectedAt    DateTime         @default(now())
+  createdAt      DateTime         @default(now())
+
+  @@index([containerDbId, collectedAt])
+  @@index([collectedAt])
+}
+
+model DockerAgentHeartbeat {
+  id             String   @id @default(cuid())
+  serverId       String
+  server         Server   @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  dockerAvailable Boolean
+  dockerError    String?
+  engineVersion  String?
+  apiVersion     String?
+  containerCount Int?
+  imageCount     Int?
+  receivedAt     DateTime @default(now())
+
+  @@index([serverId, receivedAt])
 }
 
 model AlertRule {
   id           String   @id @default(cuid())
   name         String
-  metric       String
-  operator     String
-  threshold    Float
+  description  String?
+  category     String   @default("INFRASTRUCTURE")
+  resourceType String?
+  resourceId   String?
+  alertType    String   @default("METRIC_THRESHOLD")
+  metric       String?
+  operator     String   @default("gt")
+  threshold    Float?
+  evaluationDurationSec Int @default(0)
   severity     Severity
   cooldownSec  Int      @default(300)
   enabled      Boolean  @default(true)
   isDemo       Boolean  @default(false)
+  deletedAt    DateTime?
   createdById  String?
   createdBy    User?    @relation(fields: [createdById], references: [id])
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   alerts       Alert[]
 
-  @@index([enabled, metric])
+  @@index([enabled, category, alertType])
+  @@index([resourceType, resourceId])
 }
 
 model Alert {
@@ -285,12 +367,22 @@ model Alert {
   server        Server?     @relation(fields: [serverId], references: [id])
   apiMonitorId  String?
   apiMonitor    ApiMonitor? @relation(fields: [apiMonitorId], references: [id])
+  category      String      @default("INFRASTRUCTURE")
+  alertType     String      @default("METRIC_THRESHOLD")
+  resourceType  String?
+  resourceId    String?
+  resourceName  String?
+  deduplicationKey String?  @unique
   title         String
   description   String?
   severity      Severity
   status        AlertStatus @default(OPEN)
   metricValue   Float?
   threshold     Float?
+  evaluationDurationSec Int?
+  lastEvaluatedAt DateTime?
+  lastNotifiedAt DateTime?
+  occurrenceCount Int      @default(1)
   isDemo        Boolean     @default(false)
   triggeredAt   DateTime    @default(now())
   resolvedAt    DateTime?
@@ -300,10 +392,85 @@ model Alert {
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
   incidents     IncidentAlert[]
+  events        AlertEvent[]
+  deliveries    NotificationDelivery[]
+  notifications Notification[]
 
   @@index([status, severity, triggeredAt])
   @@index([serverId, status])
   @@index([isDemo])
+  @@index([category, alertType, status, triggeredAt])
+  @@index([resourceType, resourceId, status])
+}
+
+model AlertEvent {
+  id        String   @id @default(cuid())
+  alertId   String
+  alert     Alert    @relation(fields: [alertId], references: [id], onDelete: Cascade)
+  type      String
+  message   String
+  meta      Json?
+  actorId   String?
+  actor     User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+
+  @@index([alertId, createdAt])
+  @@index([type, createdAt])
+}
+
+model AlertTeamMember {
+  id          String          @id @default(cuid())
+  name        String
+  email       String          @unique
+  designation String?
+  memberType  AlertMemberType
+  userId      String?         @unique
+  user        User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
+  isActive    Boolean         @default(true)
+  preferences Json            @default("{\"inApp\":true,\"email\":true,\"emailOnCritical\":true,\"emailOnWarning\":true,\"emailOnInfo\":false,\"emailOnResolution\":false}")
+  recipients  AlertRoutingRecipient[]
+  deliveries  NotificationDelivery[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@index([memberType, isActive])
+}
+
+model AlertRoutingRule {
+  id           String   @id @default(cuid())
+  name         String
+  description  String?
+  category     String?
+  resourceType String?
+  resourceId   String?
+  alertType    String?
+  severities   Json     @default("[\"CRITICAL\",\"HIGH\",\"MEDIUM\",\"LOW\"]")
+  channels     Json     @default("[\"IN_APP\"]")
+  priority     Int      @default(100)
+  enabled      Boolean  @default(true)
+  isFallback   Boolean  @default(false)
+  deletedAt    DateTime?
+  createdById  String?
+  createdBy    User?    @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  recipients   AlertRoutingRecipient[]
+  deliveries   NotificationDelivery[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([enabled, category, priority])
+  @@index([resourceType, resourceId, enabled])
+  @@index([isFallback, enabled])
+}
+
+model AlertRoutingRecipient {
+  routingRuleId String
+  routingRule   AlertRoutingRule @relation(fields: [routingRuleId], references: [id], onDelete: Cascade)
+  memberId      String
+  member        AlertTeamMember  @relation(fields: [memberId], references: [id], onDelete: Restrict)
+  createdAt     DateTime         @default(now())
+
+  @@id([routingRuleId, memberId])
+  @@index([memberId])
 }
 
 model Incident {
@@ -449,6 +616,9 @@ model Notification {
   id        String              @id @default(cuid())
   userId    String?
   user      User?               @relation(fields: [userId], references: [id])
+  alertId   String?
+  alert     Alert?              @relation(fields: [alertId], references: [id], onDelete: SetNull)
+  deduplicationKey String?      @unique
   channel   NotificationChannel @default(IN_APP)
   title     String
   body      String
@@ -457,6 +627,48 @@ model Notification {
   createdAt DateTime            @default(now())
 
   @@index([userId, readAt])
+  @@index([alertId, createdAt])
+}
+
+model NotificationDelivery {
+  id             String                    @id @default(cuid())
+  alertId        String
+  alert          Alert                     @relation(fields: [alertId], references: [id], onDelete: Cascade)
+  memberId       String
+  member         AlertTeamMember           @relation(fields: [memberId], references: [id], onDelete: Restrict)
+  routingRuleId  String?
+  routingRule    AlertRoutingRule?         @relation(fields: [routingRuleId], references: [id], onDelete: SetNull)
+  channel        NotificationChannel
+  recipientEmail String?
+  status         NotificationDeliveryStatus @default(PENDING)
+  deduplicationKey String                  @unique
+  attemptCount   Int                       @default(0)
+  nextAttemptAt DateTime?
+  lockedUntil    DateTime?
+  lastAttemptAt DateTime?
+  sentAt         DateTime?
+  lastError      String?
+  eventType      String                    @default("ALERT_FIRING")
+  createdAt      DateTime                  @default(now())
+  updatedAt      DateTime                  @updatedAt
+  attempts       NotificationAttempt[]
+
+  @@index([status, nextAttemptAt])
+  @@index([alertId, createdAt])
+  @@index([memberId, createdAt])
+}
+
+model NotificationAttempt {
+  id         String              @id @default(cuid())
+  deliveryId String
+  delivery   NotificationDelivery @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+  attempt    Int
+  status     NotificationDeliveryStatus
+  errorCode  String?
+  attemptedAt DateTime            @default(now())
+
+  @@unique([deliveryId, attempt])
+  @@index([attemptedAt, status])
 }
 
 model AuditLog {

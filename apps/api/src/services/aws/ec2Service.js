@@ -1,6 +1,7 @@
 import { GetMetricStatisticsCommand } from '@aws-sdk/client-cloudwatch';
 import { DescribeInstancesCommand, DescribeRegionsCommand } from '@aws-sdk/client-ec2';
 import { sendWithRetry } from './client.js';
+import { evaluateSignal, evaluateAlerts } from '../alertService.js';
 
 export async function listEnabledRegions(ec2) {
   const regions = [];
@@ -75,6 +76,7 @@ export async function discoverEc2Region({ ec2, cloudWatch, prisma, region, accou
     const tags = Object.fromEntries((instance.Tags || []).filter((tag) => tag.Key).map(({ Key, Value }) => [Key, Value]));
     const state = instance.State?.Name || 'unknown';
     const name = tags.Name || instanceId;
+    const previous = await prisma.server.findUnique({ where: { awsInstanceId: instanceId }, select: { id: true, awsState: true } });
     const arn = `arn:aws:ec2:${region}:${accountId}:instance/${instanceId}`;
     const statusChecks = state === 'running' ? await getStatusChecks(cloudWatch, region, instanceId) : { statusChecks: {}, issues: [] };
       for (const issue of statusChecks.issues) onError({ service: 'ec2-cloudwatch', region, resourceId: instanceId, operation: issue.operation, error: issue.error });
@@ -101,6 +103,11 @@ export async function discoverEc2Region({ ec2, cloudWatch, prisma, region, accou
       create: { ...serverData, awsInstanceId: instanceId },
       update: serverData,
     });
+
+    if (previous?.awsState === 'running') {
+      const stopped = ['stopped','terminated'].includes(state);
+      await evaluateSignal({ key:`aws-instance-stopped:${server.id}`, alertType:state==='terminated'?'AWS_INSTANCE_TERMINATED':'AWS_INSTANCE_STOPPED', category:'AWS', resourceType:'EC2_INSTANCE', resourceId:server.id, resourceName:name, serverId:server.id, title:`EC2 instance ${state}: ${name}`, description:`AWS reports instance ${instanceId} changed from running to ${state}.`, triggered:stopped, severity:state==='terminated'?'CRITICAL':'HIGH' });
+    }
 
     if (state === 'running') {
       for (const metric of [
@@ -145,6 +152,8 @@ export async function discoverEc2Region({ ec2, cloudWatch, prisma, region, accou
         }
       }
     }
+
+    if (state === 'running') await evaluateAlerts(server.id, {});
 
     resources.push({
       accountId,

@@ -3,6 +3,7 @@ import { env } from '../config/env.js';
 import { prisma } from '../lib/prisma.js';
 import { classifyAwsError, configuredRegion, makeAwsClients, sendWithRetry } from './aws/client.js';
 import { discoverEc2Region, listEnabledRegions } from './aws/ec2Service.js';
+import { evaluateSignal } from './alertService.js';
 import { discoverS3Buckets } from './aws/s3Service.js';
 import { discoverWithResourceExplorer } from './aws/resourceExplorerService.js';
 
@@ -298,6 +299,7 @@ async function runAwsSync(trigger) {
         resourceExplorerStatus,
       },
     });
+    await evaluateSignal({ key:`aws-collection-failure:${accountId}`, alertType:'AWS_COLLECTION_FAILURE', category:'AWS', resourceType:'AWS_ACCOUNT', resourceId:accountId, resourceName:`AWS account ${accountId}`, title:'AWS discovery incomplete', description:`AWS resource discovery status is ${status}.`, triggered:status!=='success', severity:status==='failed'?'CRITICAL':'HIGH', meta:{coverageStatus:result.coverageStatus} });
     return result;
   } catch (error) {
     const classified = classifyAwsError(error);
@@ -314,6 +316,7 @@ async function runAwsSync(trigger) {
         servicesQueried: [...queried.entries()].map(([service, status]) => ({ service, status })),
       },
     });
+    await evaluateSignal({ key:`aws-collection-failure:${accountId || 'unknown'}`, alertType:'AWS_COLLECTION_FAILURE', category:'AWS', resourceType:'AWS_ACCOUNT', resourceId:accountId || 'unknown', resourceName:accountId ? `AWS account ${accountId}` : 'AWS account', title:'AWS discovery failed', description:classified.message, triggered:true, severity:'CRITICAL' });
     return {
       id: run.id,
       trigger,

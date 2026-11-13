@@ -7,6 +7,7 @@ export const registerAgentSchema = z.object({
   environment: z.string().max(50).optional(),
   region: z.string().max(100).optional(),
   provider: z.string().max(50).optional(),
+  awsInstanceId: z.string().regex(/^i-[0-9a-f]{8,17}$/).optional(),
 });
 
 export const heartbeatSchema = z.object({
@@ -54,20 +55,53 @@ export const metricsSchema = z.object({
     .optional(),
 });
 
+const dockerBytes = z.number().nonnegative().max(Number.MAX_SAFE_INTEGER).optional().nullable();
+const dockerContainerSchema = z.object({
+  containerId: z.string().min(1).max(128),
+  name: z.string().min(1).max(200),
+  image: z.string().max(500).nullable().optional(),
+  state: z.enum(['running', 'exited', 'created', 'paused', 'restarting', 'dead', 'removing', 'unknown']),
+  status: z.string().max(200).nullable().optional(),
+  health: z.string().max(50).nullable().optional(),
+  createdAt: z.string().datetime().nullable().optional(),
+  startedAt: z.string().datetime().nullable().optional(),
+  restartCount: z.number().int().nonnegative().optional(),
+  ports: z.array(z.object({ ip: z.string().nullable(), privatePort: z.number().int().nonnegative(), publicPort: z.number().int().nonnegative().nullable(), type: z.string().max(20) })).max(100).optional(),
+  networks: z.array(z.object({ name: z.string().max(200), ipAddress: z.string().nullable(), gateway: z.string().nullable() })).max(100).optional(),
+  mounts: z.array(z.object({ type: z.string().max(50).nullable(), source: z.string().max(2000).nullable(), destination: z.string().max(2000), mode: z.string().max(100).nullable(), rw: z.boolean().nullable() })).max(100).optional(),
+});
+
+const dockerMetricSchema = z.object({
+  containerId: z.string().min(1).max(128),
+  cpuPercent: z.number().nonnegative().max(100000).nullable(),
+  memoryUsageBytes: dockerBytes,
+  memoryLimitBytes: dockerBytes,
+  memoryPercent: z.number().nonnegative().max(100000).nullable(),
+  networkRxBytes: dockerBytes,
+  networkTxBytes: dockerBytes,
+  blockReadBytes: dockerBytes,
+  blockWriteBytes: dockerBytes,
+});
+
 export const dockerSyncSchema = z.object({
-  containers: z.array(
-    z.object({
-      containerId: z.string().min(1).max(128),
-      name: z.string().max(200),
-      image: z.string().max(500).optional(),
-      state: z.string().max(50),
-      health: z.string().max(50).optional(),
-      cpuPercent: z.number().min(0).optional(),
-      memUsageMb: z.number().nonnegative().optional(),
-      restartCount: z.number().int().nonnegative().optional(),
-      startedAt: z.string().datetime().optional(),
-    }),
-  ),
+  available: z.boolean(),
+  dockerError: z.enum(['DOCKER_ENGINE_UNAVAILABLE', 'DOCKER_API_ERROR']).optional(),
+  collectedAt: z.string().datetime(),
+  host: z.object({
+    engineVersion: z.string().max(100).nullable().optional(),
+    apiVersion: z.string().max(100).nullable().optional(),
+    os: z.string().max(100).nullable().optional(),
+    architecture: z.string().max(100).nullable().optional(),
+  }).optional(),
+  containerCount: z.number().int().nonnegative().max(10000).nullable().optional(),
+  runningCount: z.number().int().nonnegative().max(10000).nullable().optional(),
+  stoppedCount: z.number().int().nonnegative().max(10000).nullable().optional(),
+  imageCount: z.number().int().nonnegative().max(100000).nullable().optional(),
+  containers: z.array(dockerContainerSchema).max(10000).optional(),
+  metrics: z.array(dockerMetricSchema).max(10000).optional(),
+}).superRefine((payload, ctx) => {
+  if (payload.available && !payload.host) ctx.addIssue({ code: 'custom', path: ['host'], message: 'Host info required when Docker is available' });
+  if (!payload.available && (payload.containers || payload.metrics?.length)) ctx.addIssue({ code: 'custom', path: ['available'], message: 'Unavailable Docker snapshots cannot include inventory or metrics' });
 });
 
 export const logIngestSchema = z.object({

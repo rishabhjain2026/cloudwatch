@@ -20,7 +20,9 @@ export const config = {
   // Optional
   intervalSec: parseInt(process.env.INFRAPULSE_INTERVAL_SEC || '30', 10),
   dockerEnabled: process.env.INFRAPULSE_DOCKER === 'true',
-  dockerSocket: process.env.DOCKER_SOCKET || '/var/run/docker.sock',
+  dockerSocket: process.env.DOCKER_SOCKET || (process.platform === 'win32' ? '\\\\.\\pipe\\docker_engine' : '/var/run/docker.sock'),
+  dockerMetricsIntervalSec: parseInt(process.env.INFRAPULSE_DOCKER_METRICS_INTERVAL_SEC || '30', 10),
+  dockerInventoryIntervalSec: parseInt(process.env.INFRAPULSE_DOCKER_INVENTORY_INTERVAL_SEC || '60', 10),
   logShipEnabled: process.env.INFRAPULSE_LOGS === 'true',
   logFile: process.env.INFRAPULSE_LOG_FILE || '',
   timeoutMs: parseInt(process.env.INFRAPULSE_TIMEOUT_MS || '10000', 10),

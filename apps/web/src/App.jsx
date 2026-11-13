@@ -9,12 +9,14 @@ import { AdminHomePage } from './pages/AdminHomePage';
 import { RequireAdmin } from './components/RequireAdmin';
 import { ServersPage } from './pages/ServersPage';
 import { DockerPage } from './pages/DockerPage';
+import { DockerContainerDetailPage } from './pages/DockerContainerDetailPage';
 import { AlertsPage } from './pages/AlertsPage';
 import { IncidentsPage } from './pages/IncidentsPage';
 import { LogsPage } from './pages/LogsPage';
 import { DeploymentsPage } from './pages/DeploymentsPage';
 import { AwsResourcesPage } from './pages/AwsResourcesPage';
 import { AwsResourceDetailPage } from './pages/AwsResourceDetailPage';
+import { AdminAlertManagementPage } from './pages/AdminAlertManagementPage';
 
 export default function App() {
   return (
@@ -33,6 +35,7 @@ export default function App() {
           </RequireAdmin>
         }
       />
+      <Route path="/admin/alerts" element={<RequireAdmin><AdminAlertManagementPage /></RequireAdmin>} />
 
       <Route path="/dashboard" element={<PublicShell />}>
         <Route index element={<PublicDashboardPage />} />
@@ -40,6 +43,7 @@ export default function App() {
         <Route path="aws-resources" element={<AwsResourcesPage />} />
         <Route path="aws-resources/:id" element={<AwsResourceDetailPage />} />
         <Route path="docker" element={<DockerPage />} />
+        <Route path="docker/:id" element={<DockerContainerDetailPage />} />
         <Route path="alerts" element={<AlertsPage />} />
         <Route path="incidents" element={<IncidentsPage />} />
         <Route path="logs" element={<LogsPage />} />
