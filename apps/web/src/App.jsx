@@ -19,6 +19,9 @@ import { AwsResourceDetailPage } from './pages/AwsResourceDetailPage';
 import { AdminAlertManagementPage } from './pages/AdminAlertManagementPage';
 import { AdminIncidentManagementPage } from './pages/AdminIncidentManagementPage';
 import { ApiMonitoringPage } from './pages/ApiMonitoringPage';
+import ComingSoon from './pages/Comingsoon'
+
+import { Outlet } from 'react-router-dom';
 
 export default function App() {
   return (
@@ -54,6 +57,13 @@ export default function App() {
         <Route path="apis" element={<ApiMonitoringPage />} />
         <Route path="network" element={<PlaceholderPage title="Network Monitoring" description="Network traffic charts — coming soon." />} />
         <Route path="costs" element={<PlaceholderPage title="Cost Monitoring" description="Infrastructure cost tracking — coming soon." />} />
+        <Route path="kubernetes" element={<ComingSoon />} />
+
+        <Route path="database-monitoring" element={<ComingSoon />} />
+        <Route path="security" element={<ComingSoon />} />
+        <Route path="cost-analytics" element={<ComingSoon />} />
+        <Route path="auto-remediation" element={<ComingSoon />} />
+
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

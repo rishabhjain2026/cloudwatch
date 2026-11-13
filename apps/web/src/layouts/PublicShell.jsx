@@ -16,6 +16,13 @@ import {
   Sun,
   X,
 } from 'lucide-react';
+import {
+  Ship,
+  Database,
+  ShieldCheck,
+  ChartNoAxesCombined,
+  Workflow,
+} from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { BrandMark } from '../components/BrandMark';
 import { Badge, Button, Input } from '../design-system';
@@ -30,11 +37,16 @@ const nav = [
   { to: '/dashboard/servers', label: 'Servers', icon: Server },
   { to: '/dashboard/aws-resources', label: 'AWS Resources', icon: Cloud },
   { to: '/dashboard/docker', label: 'Docker', icon: Container },
+  { to: '/dashboard/apis', label: 'APIs', icon: Box },
   { to: '/dashboard/alerts', label: 'Alerts', icon: AlertTriangle },
   { to: '/dashboard/incidents', label: 'Incidents', icon: Bell },
   { to: '/dashboard/logs', label: 'Logs', icon: FileText },
   { to: '/dashboard/deployments', label: 'Deployments', icon: Rocket },
-  { to: '/dashboard/apis', label: 'APIs', icon: Box },
+  { to: '/dashboard/kubernetes', label: 'Kubernetes', icon: Ship },
+{ to: '/dashboard/database-monitoring', label: 'Database Monitoring', icon: Database },
+{ to: '/dashboard/security', label: 'Security & Compliance', icon: ShieldCheck },
+{ to: '/dashboard/cost-analytics', label: 'Cloud Cost Analytics', icon: ChartNoAxesCombined },
+// { to: '/dashboard/auto-remediation', label: 'Auto Remediation', icon: Workflow },
 ];
 
 export function PublicShell() {
@@ -63,7 +75,7 @@ export function PublicShell() {
     <div className="min-h-screen bg-canvas text-text">
       <div className="flex min-h-screen">
         {/* Desktop sidebar */}
-        <aside className="hidden w-60 shrink-0 border-r border-border bg-surface lg:flex lg:flex-col">
+        <aside className="sticky top-0 hidden h-screen w-60 shrink-0 border-r border-border bg-surface lg:flex lg:flex-col">
           <div className="flex h-14 items-center border-b border-border px-4">
             <BrandMark />
           </div>
