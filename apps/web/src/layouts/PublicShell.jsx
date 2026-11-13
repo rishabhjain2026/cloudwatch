@@ -68,7 +68,7 @@ export function PublicShell() {
             <BrandMark />
           </div>
           <div className="px-3 py-3">
-            <Badge tone="demo">Public · read-only</Badge>
+            <Badge tone={isAdmin ? 'accent' : 'demo'}>{isAdmin ? 'Admin access' : 'Public · read-only'}</Badge>
           </div>
           <nav className="flex-1 space-y-0.5 overflow-y-auto px-2 pb-4">
             {visibleNav.map((item) => {
@@ -112,7 +112,7 @@ export function PublicShell() {
             </Button>
 
             <div className="hidden min-w-0 sm:block">
-              <p className="text-[11px] uppercase tracking-wide text-text-subtle">Public</p>
+              <p className="text-[11px] uppercase tracking-wide text-text-subtle">{user ? 'InfraPulse' : 'Public'}</p>
               <p className="truncate text-sm font-medium text-text">{crumb}</p>
             </div>
 

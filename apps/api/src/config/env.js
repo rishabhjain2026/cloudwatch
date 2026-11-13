@@ -48,6 +48,8 @@ const envSchema = z.object({
   AI_TIMEOUT_MS: z.coerce.number().int().min(5000).max(120000).default(30000),
   AI_ANALYSIS_ENABLED: z.string().optional().transform((v) => v !== 'false'),
   INCIDENT_UNACKNOWLEDGED_SEC: z.coerce.number().int().min(60).max(604800).default(900),
+  API_MONITOR_ENCRYPTION_KEY: optionalSetting,
+  API_MONITOR_CONCURRENCY: z.coerce.number().int().min(1).max(32).default(8),
 });
 
 const parsed = envSchema.safeParse(process.env);

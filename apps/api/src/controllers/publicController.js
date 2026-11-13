@@ -1,8 +1,9 @@
 import { getPublicOverview, listPublicServers } from '../services/overviewService.js';
 import { prisma } from '../lib/prisma.js';
 import { env } from '../config/env.js';
+import { getMonitor, listMonitors, monitorAnalytics, monitorChecks } from '../services/apiMonitorService.js';
 import { publicAlert, publicIncident, publicLog, publicServer } from '../utils/sanitize.js';
-import { ok } from '../utils/response.js';
+import { fail, ok } from '../utils/response.js';
 
 /** Returns { isDemo: true } in demo mode, {} in real mode (shows everything). */
 function demoFilter() {
@@ -93,31 +94,32 @@ export async function deploymentsHandler(_req, res) {
   );
 }
 
-export async function apisHandler(_req, res) {
-  const monitors = await prisma.apiMonitor.findMany({
-    where: env.DEMO_MODE ? { isDemo: true } : { enabled: true },
-    include: { checks: { orderBy: { checkedAt: 'desc' }, take: 1 } },
-    orderBy: { name: 'asc' },
-  });
-  return ok(
-    res,
-    monitors.map((m) => ({
-      id: m.id,
-      name: m.name,
-      method: m.method,
-      targetHost: safeHost(m.url),
-      enabled: m.enabled,
-      isDemo: m.isDemo,
-      lastCheck: m.checks[0]
-        ? {
-            statusCode: m.checks[0].statusCode,
-            latencyMs: m.checks[0].latencyMs,
-            success: m.checks[0].success,
-            checkedAt: m.checks[0].checkedAt,
-          }
-        : null,
-    })),
-  );
+export async function apisHandler(_req, res) { return ok(res, await listMonitors({ admin: false })); }
+
+export async function apiMonitorHandler(req, res) {
+  const monitor = await getMonitor(req.params.id);
+  return monitor ? ok(res, monitor) : ok(res, null);
+}
+
+export async function apiMonitorAnalyticsHandler(req, res) {
+  return ok(res, await monitorAnalytics({ id: req.params.id, range: String(req.query.range || '24h'), demoOnly: env.DEMO_MODE }));
+}
+
+export async function apiMonitorChecksHandler(req, res) {
+  const monitor = await getMonitor(req.params.id);
+  if (!monitor) return ok(res, { items: [], total: 0, page: 1, pageSize: 50 });
+  const page = Math.max(1, Number(req.query.page) || 1);
+  const pageSize = Math.min(100, Math.max(1, Number(req.query.pageSize) || 50));
+  const from = req.query.from ? new Date(String(req.query.from)) : undefined;
+  const to = req.query.to ? new Date(String(req.query.to)) : undefined;
+  const status = req.query.status ? String(req.query.status) : undefined;
+  if ((from && Number.isNaN(from.getTime())) || (to && Number.isNaN(to.getTime()))) return fail(res, 400, 'INVALID_DATE', 'Invalid check history date range');
+  if (status && !['success','failure'].includes(status)) return fail(res, 400, 'INVALID_STATUS', 'Status must be success or failure');
+  return ok(res, await monitorChecks(req.params.id, { page, pageSize, from, to, status, demoOnly: env.DEMO_MODE }));
+}
+
+export async function apiMonitorOverviewHandler(req, res) {
+  return ok(res, await monitorAnalytics({ range: String(req.query.range || '24h'), demoOnly: env.DEMO_MODE }));
 }
 
 export async function dockerHandler(_req, res) {

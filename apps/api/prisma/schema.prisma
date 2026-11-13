@@ -699,6 +699,14 @@ model ApiMonitor {
   enabled        Boolean    @default(true)
   isDemo         Boolean    @default(false)
   expectedStatus Int        @default(200)
+  expectedContent String?
+  timeoutMs      Int        @default(10000)
+  warningLatencyMs Int?
+  criticalLatencyMs Int?
+  sslWarnDays    Int        @default(14)
+  requestConfigEncrypted String?
+  nextCheckAt    DateTime?
+  checkLockedUntil DateTime?
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
   checks         ApiCheck[]
@@ -716,7 +724,14 @@ model ApiCheck {
   latencyMs         Int?
   success           Boolean
   error             String?
+  errorType         String?
+  timedOut          Boolean    @default(false)
+  expectedStatusMatched Boolean?
+  contentMatched    Boolean?
   sslDaysRemaining  Int?
+  sslIssuer         String?
+  sslExpiresAt      DateTime?
+  sslValid          Boolean?
   checkedAt         DateTime   @default(now())
 
   @@index([apiMonitorId, checkedAt])
