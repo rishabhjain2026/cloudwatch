@@ -18,6 +18,7 @@ import { AwsResourcesPage } from './pages/AwsResourcesPage';
 import { AwsResourceDetailPage } from './pages/AwsResourceDetailPage';
 import { AdminAlertManagementPage } from './pages/AdminAlertManagementPage';
 import { AdminIncidentManagementPage } from './pages/AdminIncidentManagementPage';
+import { ApiMonitoringPage } from './pages/ApiMonitoringPage';
 
 export default function App() {
   return (
@@ -50,7 +51,7 @@ export default function App() {
         <Route path="incidents" element={<IncidentsPage />} />
         <Route path="logs" element={<LogsPage />} />
         <Route path="deployments" element={<DeploymentsPage />} />
-        <Route path="apis" element={<PlaceholderPage title="API Monitoring" description="API uptime and latency monitoring — coming soon." />} />
+        <Route path="apis" element={<ApiMonitoringPage />} />
         <Route path="network" element={<PlaceholderPage title="Network Monitoring" description="Network traffic charts — coming soon." />} />
         <Route path="costs" element={<PlaceholderPage title="Cost Monitoring" description="Infrastructure cost tracking — coming soon." />} />
       </Route>

@@ -24,18 +24,17 @@ export function startScheduler() {
     }
   }, 30_000);
 
-  // API health checker — runs every 30 seconds, checks internally which monitors are due
+  // API health checks run independently of metric alert-rule evaluation.
+  apiCheckTimer = setInterval(async () => {
+    try {
+      const result = await runDueApiChecks();
+      if (result.ran > 0) console.log(`[scheduler] ran ${result.ran} API check(s)`);
+    } catch (err) {
+      console.error('[scheduler] API checker error:', err.message);
+    }
+  }, 30_000);
+
   if (env.ALERT_EVAL_ENABLED) {
-    apiCheckTimer = setInterval(async () => {
-      try {
-        const result = await runDueApiChecks();
-        if (result.ran > 0) {
-          console.log(`[scheduler] ran ${result.ran} API check(s)`);
-        }
-      } catch (err) {
-        console.error('[scheduler] API checker error:', err.message);
-      }
-    }, 30_000);
     notificationTimer = setInterval(async () => {
       try { await processNotificationQueue(); }
       catch (err) { console.error('[scheduler] notification worker error:', err.message); }

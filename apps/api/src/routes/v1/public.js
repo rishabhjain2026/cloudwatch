@@ -4,6 +4,10 @@ import { env } from '../../config/env.js';
 import {
   alertsHandler,
   apisHandler,
+  apiMonitorHandler,
+  apiMonitorAnalyticsHandler,
+  apiMonitorChecksHandler,
+  apiMonitorOverviewHandler,
   costsHandler,
   deploymentsHandler,
   domainsHandler,
@@ -37,6 +41,10 @@ router.get('/incidents', incidentsHandler);
 router.get('/logs', logsHandler);
 router.get('/deployments', deploymentsHandler);
 router.get('/apis', apisHandler);
+router.get('/apis/analytics', apiMonitorOverviewHandler);
+router.get('/apis/:id/analytics', apiMonitorAnalyticsHandler);
+router.get('/apis/:id/checks', apiMonitorChecksHandler);
+router.get('/apis/:id', apiMonitorHandler);
 router.get('/docker', dockerOverviewHandler);
 router.get('/docker/containers/:id', dockerContainerDetailHandler);
 router.get('/network', networkHandler);
